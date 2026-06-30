@@ -10,9 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { storiesService } from '../../src/services/supabase/stories';
-import { contributionsService } from '../../src/services/supabase/contributions';
-import { votesService } from '../../src/services/supabase/votes';
+import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Contribution {
@@ -32,33 +30,80 @@ export default function Vote() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [userVote, setUserVote] = useState<string | null>(null);
   const [story, setStory] = useState<any>(null);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
+    setupRealtime();
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
   }, [id]);
+
+  const setupRealtime = () => {
+    const channel = supabase
+      .channel(`votes:${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'votes',
+          filter: `story_id=eq.${id}`,
+        },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    setSubscription(channel);
+  };
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const storyData = await storiesService.getStoryById(id as string);
+      // Récupérer l'histoire
+      const { data: storyData, error: storyError } = await supabase
+        .from('stories')
+        .select('current_turn')
+        .eq('id', id)
+        .single();
+
+      if (storyError) throw storyError;
       setStory(storyData);
 
-      if (storyData) {
-        const pending = await contributionsService.getPendingContributions(
-          id as string,
-          storyData.current_turn
-        );
-        setContributions(pending);
+      // Récupérer les contributions en attente
+      const { data: pending, error: pendingError } = await supabase
+        .from('contributions')
+        .select(`
+          *,
+          author:users(username, avatar_url),
+          votes(count)
+        `)
+        .eq('story_id', id)
+        .eq('turn_number', storyData.current_turn)
+        .eq('is_canon', false);
 
-        if (user) {
-          const vote = await votesService.getUserVoteForTurn(
-            id as string,
-            user.id,
-            storyData.current_turn
-          );
-          if (vote) {
-            setUserVote(vote.contribution_id);
-          }
+      if (pendingError) throw pendingError;
+      setContributions(pending || []);
+
+      // Vérifier si l'utilisateur a déjà voté
+      if (user) {
+        const { data: vote, error: voteError } = await supabase
+          .from('votes')
+          .select('contribution_id')
+          .eq('story_id', id)
+          .eq('user_id', user.id)
+          .eq('turn_number', storyData.current_turn)
+          .maybeSingle();
+
+        if (voteError) throw voteError;
+        if (vote) {
+          setUserVote(vote.contribution_id);
         }
       }
     } catch (error: any) {
@@ -81,12 +126,16 @@ export default function Vote() {
 
     setVoting(true);
     try {
-      await votesService.castVote({
-        contribution_id: contributionId,
-        user_id: user.id,
-        story_id: id as string,
-        turn_number: story.current_turn,
-      });
+      const { error } = await supabase
+        .from('votes')
+        .insert([{
+          contribution_id: contributionId,
+          user_id: user.id,
+          story_id: id,
+          turn_number: story.current_turn,
+        }]);
+
+      if (error) throw error;
 
       setUserVote(contributionId);
       Alert.alert('Succès', 'Votre vote a été enregistré !');

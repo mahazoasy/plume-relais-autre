@@ -9,13 +9,12 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '../src/hooks/useAuth';
+import { supabase } from '../src/config/supabase';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,23 +23,22 @@ export default function Login() {
     }
 
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
     setLoading(false);
 
     if (error) {
-      // Gérer les erreurs spécifiques
-      if (error.message.includes('Invalid login credentials')) {
-        Alert.alert('Erreur', 'Email ou mot de passe incorrect');
-      } else if (error.message.includes('Email not confirmed')) {
-        Alert.alert('Erreur', 'Veuillez confirmer votre email avant de vous connecter');
-      } else {
-        Alert.alert('Erreur', error.message || 'Une erreur est survenue');
-      }
+      console.error('Login error:', error);
+      // Affiche le message d'erreur exact de Supabase
+      Alert.alert('Erreur de connexion', error.message);
       return;
     }
 
-    // Connexion réussie
-    router.replace('/(tabs)/home');
+    if (data.user) {
+      router.replace('/(tabs)/home');
+    }
   };
 
   return (
@@ -64,8 +62,8 @@ export default function Login() {
         secureTextEntry
       />
 
-      <TouchableOpacity 
-        style={styles.button} 
+      <TouchableOpacity
+        style={styles.button}
         onPress={handleLogin}
         disabled={loading}
       >
