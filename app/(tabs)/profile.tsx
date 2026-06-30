@@ -22,6 +22,13 @@ export default function Profile() {
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
+    if (!user && !loading && !signingOut) {
+      // Si l'utilisateur n'est pas connecté, rediriger vers login
+      router.replace('/login');
+    }
+  }, [user, loading]);
+
+  useEffect(() => {
     if (user) {
       fetchProfileData();
     }
@@ -80,12 +87,11 @@ export default function Profile() {
           onPress: async () => {
             setSigningOut(true);
             try {
-              await signOut();
-              // Rediriger vers la page de connexion après déconnexion
-              router.replace('/login');
+              await signOut(() => {
+                router.replace('/login');
+              });
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible de se déconnecter. Veuillez réessayer.');
-              console.error('SignOut error:', error);
+              Alert.alert('Erreur', 'Impossible de se déconnecter.');
             } finally {
               setSigningOut(false);
             }
@@ -95,18 +101,16 @@ export default function Profile() {
     );
   };
 
-  if (!user) {
+  if (!user && !loading) {
+    // Si user est null et loading est false, on ne rend rien (le useEffect redirige)
     return (
       <View style={styles.container}>
-        <Text style={styles.emptyText}>Veuillez vous connecter</Text>
-        <TouchableOpacity onPress={() => router.push('/login')}>
-          <Text style={styles.link}>Aller à la connexion</Text>
-        </TouchableOpacity>
+        <ActivityIndicator size="large" color="#6C63FF" />
       </View>
     );
   }
 
-  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'Utilisateur';
+  const username = user?.user_metadata?.username || user?.email?.split('@')[0] || 'Utilisateur';
 
   const avatarSource = avatarUrl
     ? { uri: avatarUrl }
@@ -117,7 +121,7 @@ export default function Profile() {
       <View style={styles.header}>
         <Image source={avatarSource} style={styles.avatar} />
         <Text style={styles.username}>{username}</Text>
-        <Text style={styles.email}>{user.email}</Text>
+        <Text style={styles.email}>{user?.email}</Text>
       </View>
 
       <View style={styles.stats}>

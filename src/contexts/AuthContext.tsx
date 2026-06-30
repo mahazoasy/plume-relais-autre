@@ -52,10 +52,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
-  const signOut = async () => {
+  const signOut = async (navigationCallback?: () => void) => {
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    if (navigationCallback) {
+      navigationCallback();
+    }
   };
 
   return (
