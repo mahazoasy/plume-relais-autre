@@ -61,6 +61,13 @@ export default function Home() {
     fetchStories();
   };
 
+  const [filter, setFilter] = useState({
+    sortBy: 'created_at',
+    order: 'desc',
+    search: '',
+  });
+
+
   const handleCreateStory = () => {
     router.push('/(tabs)/create');
   };
@@ -68,6 +75,27 @@ export default function Home() {
   const handleStoryPress = (storyId: string) => {
     router.push(`/story/${storyId}`);
   };
+
+  const FilterBar = () => (
+    <View style={styles.filterBar}>
+      <TextInput
+        style={styles.filterInput}
+        placeholder="Rechercher..."
+        value={filter.search}
+        onChangeText={(text) => setFilter(prev => ({ ...prev, search: text }))}
+        onSubmitEditing={fetchStories}
+      />
+      <TouchableOpacity
+        style={styles.filterButton}
+        onPress={() => {
+          // Ouvrir modal de filtres
+          setShowFilters(true);
+        }}
+      >
+        <Ionicons name="options-outline" size={20} color="#6C63FF" />
+      </TouchableOpacity>
+    </View>
+  );
 
   const renderStory = ({ item }: { item: Story }) => (
     <TouchableOpacity style={styles.card} onPress={() => handleStoryPress(item.id)}>

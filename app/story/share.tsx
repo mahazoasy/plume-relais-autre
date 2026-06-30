@@ -1,7 +1,16 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Platform,
+  Share as RNShare,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Share() {
@@ -11,44 +20,27 @@ export default function Share() {
   const handleShare = async () => {
     try {
       if (Platform.OS === 'web') {
-        // Essayer d'abord l'API Web Share
+        // API Web Share
         if (navigator.share) {
           await navigator.share({
             title: 'Partager cette histoire',
             text: `Découvrez cette histoire sur Plume Relais : ${url}`,
             url,
           });
-          return;
-        }
-        
-        // Fallback : créer un lien cliquable dans une nouvelle fenêtre
-        // ou copier dans le presse-papiers
-        try {
-          await navigator.clipboard.writeText(url);
+        } else {
+          // Copie du lien dans le presse-papiers
+          await Clipboard.setStringAsync(url);
           Alert.alert('✅ Lien copié', 'Le lien a été copié dans votre presse-papiers.');
-        } catch (clipError) {
-          // Si la copie échoue, ouvrir une nouvelle fenêtre avec le lien
-          window.open(url, '_blank');
-          Alert.alert('Lien ouvert', 'Le lien s\'est ouvert dans un nouvel onglet.');
         }
       } else {
-        // Sur mobile, utiliser expo-sharing
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(url, {
-            dialogTitle: 'Partager cette histoire',
-            mimeType: 'text/plain',
-          });
-        } else {
-          Alert.alert('Info', 'Le partage n\'est pas disponible sur cet appareil.');
-        }
+        // Sur mobile : utilise l'API Share de React Native
+        await RNShare.share({
+          message: `📖 Découvrez cette histoire sur Plume Relais : ${url}`,
+          title: 'Partager l\'histoire',
+        });
       }
     } catch (error: any) {
-      if (
-        error.message?.includes('canceled') ||
-        error.message?.includes('AbortError') ||
-        error.name === 'AbortError'
-      ) {
+      if (error.message?.includes('canceled') || error.message?.includes('AbortError')) {
         return;
       }
       Alert.alert('Erreur', 'Impossible de partager. Veuillez réessayer.');
@@ -65,14 +57,28 @@ export default function Share() {
         <Text style={styles.headerTitle}>Partager</Text>
         <View style={{ width: 24 }} />
       </View>
+
       <View style={styles.content}>
-        <Text style={styles.title}>📤 Partagez cette histoire</Text>
+        <Ionicons name="share-social" size={64} color="#6C63FF" />
+        <Text style={styles.title}>Partagez cette histoire</Text>
         <Text style={styles.subtitle}>Envoyez le lien à vos amis</Text>
+
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-social" size={32} color="#FFF" />
+          <Ionicons name="share-social" size={24} color="#FFF" />
           <Text style={styles.shareText}>Partager maintenant</Text>
         </TouchableOpacity>
-        {/* Affichage du lien au cas où */}
+
+        <TouchableOpacity
+          style={styles.copyButton}
+          onPress={async () => {
+            await Clipboard.setStringAsync(url);
+            Alert.alert('✅ Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+          }}
+        >
+          <Ionicons name="copy" size={20} color="#6C63FF" />
+          <Text style={styles.copyText}>Copier le lien</Text>
+        </TouchableOpacity>
+
         <Text style={styles.linkDisplay}>🔗 {url}</Text>
       </View>
     </View>
@@ -92,22 +98,25 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 16 },
   subtitle: { fontSize: 16, color: '#666', marginTop: 8, marginBottom: 32 },
   shareButton: {
     backgroundColor: '#6C63FF',
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    marginBottom: 12,
   },
-  shareText: { color: '#FFF', fontSize: 18, fontWeight: '600' },
-  linkDisplay: {
-    marginTop: 24,
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
+  shareText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  copyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
   },
+  copyText: { color: '#6C63FF', fontSize: 14, fontWeight: '500' },
+  linkDisplay: { marginTop: 16, fontSize: 12, color: '#999', textAlign: 'center' },
 });
