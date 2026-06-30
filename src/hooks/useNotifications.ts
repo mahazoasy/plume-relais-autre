@@ -1,17 +1,11 @@
 import { useState, useEffect } from 'react';
 import { notificationsService } from '../services/supabase/notifications';
+import { supabase } from '../config/supabase';
 
 export const useNotifications = (userId: string) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (userId) {
-      fetchNotifications();
-      subscribeToNotifications();
-    }
-  }, [userId]);
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -26,12 +20,18 @@ export const useNotifications = (userId: string) => {
     }
   };
 
-  const subscribeToNotifications = () => {
-    return notificationsService.subscribeToNotifications(userId, (payload) => {
-      setNotifications(prev => [payload.new, ...prev]);
-      setUnreadCount(prev => prev + 1);
-    });
-  };
+  useEffect(() => {
+    if (userId) {
+      fetchNotifications();
+      const subscription = notificationsService.subscribeToNotifications(userId, (payload) => {
+        setNotifications(prev => [payload.new, ...prev]);
+        setUnreadCount(prev => prev + 1);
+      });
+      return () => {
+        supabase.removeChannel(subscription);
+      };
+    }
+  }, [userId]);
 
   const markAsRead = async (id: string) => {
     await notificationsService.markAsRead(id);
