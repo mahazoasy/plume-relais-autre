@@ -21,16 +21,15 @@ export const useNotifications = (userId: string) => {
   };
 
   useEffect(() => {
-    if (userId) {
-      fetchNotifications();
-      const subscription = notificationsService.subscribeToNotifications(userId, (payload) => {
-        setNotifications(prev => [payload.new, ...prev]);
-        setUnreadCount(prev => prev + 1);
-      });
-      return () => {
-        supabase.removeChannel(subscription);
-      };
-    }
+    if (!userId) return;
+    fetchNotifications();
+    const subscription = notificationsService.subscribeToNotifications(userId, (payload) => {
+      setNotifications(prev => [payload.new, ...prev]);
+      setUnreadCount(prev => prev + 1);
+    });
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [userId]);
 
   const markAsRead = async (id: string) => {

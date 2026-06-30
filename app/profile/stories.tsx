@@ -21,14 +21,13 @@ export default function MyStories() {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    fetchStories();
+    if (user) fetchStories();
   }, []);
 
   const fetchStories = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Récupère toutes les histoires créées par l'utilisateur
       const data = await storiesService.getStories({ userId: user.id });
       setStories(data || []);
     } catch (error) {

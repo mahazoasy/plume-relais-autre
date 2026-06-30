@@ -25,20 +25,17 @@ export default function Profile() {
   const fetchStats = async () => {
     if (!user) return;
     try {
-      // Nombre d'histoires créées
       const { count: storiesCount } = await supabase
         .from('stories')
         .select('*', { count: 'exact', head: true })
         .eq('created_by', user.id);
 
-      // Nombre de contributions (canon)
       const { count: contribCount } = await supabase
         .from('contributions')
         .select('*', { count: 'exact', head: true })
         .eq('author_id', user.id)
         .eq('is_canon', true);
 
-      // Réputation (depuis la table users)
       const { data: userData } = await supabase
         .from('users')
         .select('reputation')
@@ -119,12 +116,12 @@ export default function Profile() {
       </View>
 
       <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/edit')}>
           <Ionicons name="person-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Modifier le profil</Text>
           <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/stories')}>
           <Ionicons name="book-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Mes histoires</Text>
           <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
@@ -144,7 +141,7 @@ export default function Profile() {
   );
 }
 
-// Styles identiques à ceux déjà présents (je les garde)
+// Styles inchangés
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {

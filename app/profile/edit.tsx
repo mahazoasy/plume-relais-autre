@@ -15,7 +15,7 @@ import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EditProfile() {
-  const { user, updateProfile } = useAuth();
+  const { user } = useAuth();
   const [username, setUsername] = useState(user?.user_metadata?.username || '');
   const [loading, setLoading] = useState(false);
 
@@ -32,8 +32,12 @@ export default function EditProfile() {
         .eq('id', user?.id);
       if (error) throw error;
 
-      // Met à jour le contexte (si implémenté)
-      await updateProfile?.({ username: username.trim() });
+      // Mettre à jour les métadonnées de l'utilisateur (pour le contexte)
+      const { error: metaError } = await supabase.auth.updateUser({
+        data: { username: username.trim() },
+      });
+      if (metaError) throw metaError;
+
       Alert.alert('Succès', 'Profil mis à jour');
       router.back();
     } catch (error: any) {
