@@ -23,7 +23,6 @@ export default function EditProfile() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Récupérer l'avatar actuel depuis la table users
   useEffect(() => {
     if (user?.id) {
       fetchAvatar();
@@ -61,34 +60,56 @@ export default function EditProfile() {
     });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      await uploadAvatar(uri);
+      const asset = result.assets[0];
+      // asset.uri peut être une data URI sur web, on le gère
+      await uploadAvatar(asset);
     }
   };
 
-  const uploadAvatar = async (uri: string) => {
+  const uploadAvatar = async (asset: ImagePicker.ImagePickerAsset) => {
     setUploading(true);
     try {
-      // 1. Récupérer le fichier
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const fileExt = uri.split('.').pop() || 'jpg';
+      // 1. Déterminer l'extension à partir du mimeType ou du fileName
+      let fileExt = 'jpg'; // fallback
+      if (asset.mimeType) {
+        // Ex: "image/jpeg" -> "jpeg"
+        fileExt = asset.mimeType.split('/')[1] || 'jpg';
+      } else if (asset.fileName) {
+        const parts = asset.fileName.split('.');
+        if (parts.length > 1) fileExt = parts.pop() || 'jpg';
+      } else {
+        // Si aucun, on peut tenter de l'extraire de l'URI 
+        // On va se fier au mimeType par défaut.
+      }
+
+      // 2. Récupérer le blob
+      let blob: Blob;
+      if (asset.uri.startsWith('data:')) {
+        // C'est une data URI, on la convertit en Blob
+        const response = await fetch(asset.uri);
+        blob = await response.blob();
+      } else {
+        const response = await fetch(asset.uri);
+        blob = await response.blob();
+      }
+
+      // 3. Nom du fichier
       const fileName = `${user?.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // 2. Upload vers Supabase Storage
+      // 4. Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, blob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 3. Récupérer l'URL publique
+      // 5. Récupérer l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 4. Mettre à jour la table users
+      // 6. Mettre à jour la table users
       const { error: updateError } = await supabase
         .from('users')
         .update({ avatar_url: publicUrl })
@@ -96,11 +117,11 @@ export default function EditProfile() {
 
       if (updateError) throw updateError;
 
-      // 5. Mettre à jour l'état local
       setAvatarUrl(publicUrl);
       Alert.alert('Succès', 'Avatar mis à jour !');
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Impossible de télécharger l\'image');
+      console.error('Upload error:', error);
     } finally {
       setUploading(false);
     }
@@ -113,14 +134,12 @@ export default function EditProfile() {
     }
     setSaving(true);
     try {
-      // Mettre à jour la table users
       const { error } = await supabase
         .from('users')
         .update({ username: username.trim() })
         .eq('id', user?.id);
       if (error) throw error;
 
-      // Mettre à jour les métadonnées de l'utilisateur (pour le contexte)
       const { error: metaError } = await supabase.auth.updateUser({
         data: { username: username.trim() },
       });
@@ -196,6 +215,7 @@ export default function EditProfile() {
   );
 }
 
+// Styles inchangés
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {
