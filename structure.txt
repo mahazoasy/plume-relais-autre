@@ -1,0 +1,67 @@
+.
+├── app
+│   ├── index.tsx
+│   ├── _layout.tsx
+│   ├── login.tsx
+│   ├── notifications.tsx
+│   ├── profile
+│   │   ├── edit.tsx
+│   │   └── stories.tsx
+│   ├── register.tsx
+│   ├── story
+│   │   ├── comments.tsx
+│   │   ├── contribute.tsx
+│   │   ├── [id].tsx
+│   │   ├── _layout.tsx
+│   │   ├── share.tsx
+│   │   └── vote.tsx
+│   └── (tabs)
+│       ├── create.tsx
+│       ├── explore.tsx
+│       ├── home.tsx
+│       ├── _layout.tsx
+│       └── profile.tsx
+├── app.json
+├── assets
+│   ├── adaptive-icon.png
+│   ├── favicon.png
+│   ├── icon.png
+│   └── splash.png
+├── babel.config.js
+├── package.json
+├── package-lock.json
+├── src
+│   ├── components
+│   │   └── common
+│   │       ├── Avatar.tsx
+│   │       ├── Button.tsx
+│   │       ├── Card.tsx
+│   │       ├── Input.tsx
+│   │       └── LoadingSpinner.tsx
+│   ├── config
+│   │   └── supabase.ts
+│   ├── contexts
+│   │   └── AuthContext.tsx
+│   ├── hooks
+│   │   ├── useAuth.ts
+│   │   ├── useNotifications.ts
+│   │   └── useRealtime.ts
+│   ├── services
+│   │   └── supabase
+│   │       ├── auth.ts
+│   │       ├── client.ts
+│   │       ├── comments.ts
+│   │       ├── contributions.ts
+│   │       ├── notifications.ts
+│   │       ├── stories.ts
+│   │       └── votes.ts
+│   ├── types
+│   │   └── index.ts
+│   └── utils
+│       ├── constants.ts
+│       ├── helpers.ts
+│       └── validators.ts
+├── structure.txt
+└── tsconfig.json
+
+16 directories, 49 files

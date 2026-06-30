@@ -8,6 +8,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -61,6 +63,12 @@ export default function Comments() {
     }
   };
 
+  const handleGoBack = () => {
+    // Retourner à l'écran précédent (le détail de l'histoire)
+    router.back();
+    // Alternative : router.push(`/story/${id}`) si le back ne fonctionne pas
+  };
+
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
@@ -72,9 +80,13 @@ export default function Comments() {
   );
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={100}
+    >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Commentaires</Text>
@@ -105,7 +117,11 @@ export default function Comments() {
           onChangeText={setContent}
           multiline
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend} disabled={sending || !content.trim()}>
+        <TouchableOpacity
+          style={[styles.sendButton, (!content.trim() || sending) && styles.sendButtonDisabled]}
+          onPress={handleSend}
+          disabled={!content.trim() || sending}
+        >
           {sending ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
@@ -113,7 +129,7 @@ export default function Comments() {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -171,4 +187,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginLeft: 8,
   },
+  sendButtonDisabled: { opacity: 0.5 },
 });
