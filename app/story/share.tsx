@@ -1,20 +1,42 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard'; 
 
 export default function Share() {
   const { id } = useLocalSearchParams();
+  const url = `https://plume-relais.com/story/${id}`;
 
   const handleShare = async () => {
-    const url = `https://plume-relais.com/story/${id}`;
     try {
-      await Sharing.shareAsync(url, {
-        dialogTitle: 'Partager cette histoire',
-        mimeType: 'text/plain',
-      });
-    } catch (error) {
+      if (Platform.OS === 'web') {
+        // Sur web, on utilise l'API de partage du navigateur
+        if (navigator.share) {
+          await navigator.share({
+            title: 'Partager cette histoire',
+            text: `Découvrez cette histoire sur Plume Relais : ${url}`,
+            url,
+          });
+        } else {
+          // Fallback : copier dans le presse-papiers
+          await navigator.clipboard.writeText(url);
+          Alert.alert('Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+        }
+      } else {
+        // Sur mobile, on utilise expo-sharing
+        await Sharing.shareAsync(url, {
+          dialogTitle: 'Partager cette histoire',
+          mimeType: 'text/plain',
+        });
+      }
+    } catch (error: any) {
+      // Si l'utilisateur annule, l'erreur peut être "AbortError" ou "canceled"
+      if (error.message?.includes('canceled') || error.message?.includes('AbortError')) {
+        // Ignorer l'annulation
+        return;
+      }
       Alert.alert('Erreur', 'Impossible de partager');
     }
   };
@@ -40,6 +62,7 @@ export default function Share() {
   );
 }
 
+// styles inchangés
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {

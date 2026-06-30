@@ -50,8 +50,8 @@ export const notificationsService = {
           filter: `user_id=eq.${userId}`,
         },
         callback
-      )
-      .subscribe();
+      );
+    channel.subscribe();
     return channel;
   },
 };
