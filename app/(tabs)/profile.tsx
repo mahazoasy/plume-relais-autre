@@ -7,6 +7,7 @@ import {
   Alert,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -16,14 +17,19 @@ import { Ionicons } from '@expo/vector-icons';
 export default function Profile() {
   const { user, signOut } = useAuth();
   const [stats, setStats] = useState({ stories: 0, contributions: 0, reputation: 0 });
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
-    if (user) fetchStats();
+    if (user) {
+      fetchProfileData();
+    }
   }, [user]);
 
-  const fetchStats = async () => {
+  const fetchProfileData = async () => {
     if (!user) return;
+    setLoading(true);
     try {
       const { count: storiesCount } = await supabase
         .from('stories')
@@ -36,19 +42,27 @@ export default function Profile() {
         .eq('author_id', user.id)
         .eq('is_canon', true);
 
-      const { data: userData } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('reputation')
+        .select('reputation, avatar_url')
         .eq('id', user.id)
         .single();
+
+      if (userError) throw userError;
 
       setStats({
         stories: storiesCount || 0,
         contributions: contribCount || 0,
         reputation: userData?.reputation || 0,
       });
+
+      if (userData?.avatar_url) {
+        setAvatarUrl(userData.avatar_url);
+      } else {
+        setAvatarUrl(null);
+      }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('Error fetching profile data:', error);
     } finally {
       setLoading(false);
     }
@@ -64,8 +78,17 @@ export default function Profile() {
           text: 'Déconnecter',
           style: 'destructive',
           onPress: async () => {
-            await signOut();
-            router.replace('/login');
+            setSigningOut(true);
+            try {
+              await signOut();
+              // Rediriger vers la page de connexion après déconnexion
+              router.replace('/login');
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de se déconnecter. Veuillez réessayer.');
+              console.error('SignOut error:', error);
+            } finally {
+              setSigningOut(false);
+            }
           },
         },
       ]
@@ -85,15 +108,14 @@ export default function Profile() {
 
   const username = user.user_metadata?.username || user.email?.split('@')[0] || 'Utilisateur';
 
+  const avatarSource = avatarUrl
+    ? { uri: avatarUrl }
+    : { uri: `https://ui-avatars.com/api/?name=${username}&background=6C63FF&color=fff&size=100` };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Image
-          source={{
-            uri: `https://ui-avatars.com/api/?name=${username}&background=6C63FF&color=fff&size=100`,
-          }}
-          style={styles.avatar}
-        />
+        <Image source={avatarSource} style={styles.avatar} />
         <Text style={styles.username}>{username}</Text>
         <Text style={styles.email}>{user.email}</Text>
       </View>
@@ -133,15 +155,24 @@ export default function Profile() {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-        <Text style={styles.signOutText}>Se déconnecter</Text>
+      <TouchableOpacity
+        style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
+        onPress={handleSignOut}
+        disabled={signingOut}
+      >
+        {signingOut ? (
+          <ActivityIndicator size="small" color="#FF3B30" />
+        ) : (
+          <>
+            <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
+            <Text style={styles.signOutText}>Se déconnecter</Text>
+          </>
+        )}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-// Styles inchangés
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {
@@ -192,6 +223,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF3B30',
   },
+  signOutButtonDisabled: { opacity: 0.5 },
   signOutText: { fontSize: 16, color: '#FF3B30', fontWeight: '600', marginLeft: 8 },
   emptyText: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 40 },
   link: { color: '#6C63FF', textAlign: 'center', marginTop: 10 },
