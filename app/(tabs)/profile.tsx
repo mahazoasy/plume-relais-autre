@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,52 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
+import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function Profile() {
   const { user, signOut } = useAuth();
+  const [stats, setStats] = useState({ stories: 0, contributions: 0, reputation: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) fetchStats();
+  }, [user]);
+
+  const fetchStats = async () => {
+    if (!user) return;
+    try {
+      // Nombre d'histoires créées
+      const { count: storiesCount } = await supabase
+        .from('stories')
+        .select('*', { count: 'exact', head: true })
+        .eq('created_by', user.id);
+
+      // Nombre de contributions (canon)
+      const { count: contribCount } = await supabase
+        .from('contributions')
+        .select('*', { count: 'exact', head: true })
+        .eq('author_id', user.id)
+        .eq('is_canon', true);
+
+      // Réputation (depuis la table users)
+      const { data: userData } = await supabase
+        .from('users')
+        .select('reputation')
+        .eq('id', user.id)
+        .single();
+
+      setStats({
+        stories: storiesCount || 0,
+        contributions: contribCount || 0,
+        reputation: userData?.reputation || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -61,17 +103,17 @@ export default function Profile() {
 
       <View style={styles.stats}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statValue}>{stats.reputation}</Text>
           <Text style={styles.statLabel}>Réputation</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statValue}>{stats.stories}</Text>
           <Text style={styles.statLabel}>Histoires</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>0</Text>
+          <Text style={styles.statValue}>{stats.contributions}</Text>
           <Text style={styles.statLabel}>Contributions</Text>
         </View>
       </View>
@@ -87,7 +129,7 @@ export default function Profile() {
           <Text style={styles.menuText}>Mes histoires</Text>
           <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notifications')}>
           <Ionicons name="notifications-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Notifications</Text>
           <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
@@ -102,6 +144,7 @@ export default function Profile() {
   );
 }
 
+// Styles identiques à ceux déjà présents (je les garde)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {
@@ -111,13 +154,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: '#6C63FF',
-  },
+  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#6C63FF' },
   username: { fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 12 },
   email: { fontSize: 14, color: '#666', marginTop: 4 },
   stats: {

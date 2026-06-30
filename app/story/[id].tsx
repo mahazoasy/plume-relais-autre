@@ -140,6 +140,14 @@ export default function StoryDetail() {
     router.push(`/story/vote?id=${id}`);
   };
 
+  const handleComments = () => {
+    router.push(`/story/comments?id=${id}`);
+  };
+
+  const handleShare = () => {
+    router.push(`/story/share?id=${id}`);
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -175,7 +183,9 @@ export default function StoryDetail() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {story.title}
         </Text>
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={handleShare}>
+          <Ionicons name="share-social-outline" size={24} color="#6C63FF" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -241,13 +251,26 @@ export default function StoryDetail() {
           </View>
         )}
 
+        {/* SECTION COMMENTAIRES - affichée uniquement si l'histoire est terminée */}
+        {isCompleted && (
+          <View style={styles.commentContainer}>
+            <TouchableOpacity
+              style={styles.commentButton}
+              onPress={handleComments}
+            >
+              <Ionicons name="chatbubble-outline" size={24} color="#FFF" />
+              <Text style={styles.commentButtonText}>Commentaires</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Text style={styles.sectionTitle}>📖 Récit</Text>
         {contributions.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>Aucune contribution pour le moment</Text>
           </View>
         ) : (
-          contributions.map((contribution, index) => (
+          contributions.map((contribution) => (
             <View key={contribution.id} style={styles.contributionCard}>
               <View style={styles.contributionHeader}>
                 <Text style={styles.contributionAuthor}>
@@ -357,6 +380,19 @@ const styles = StyleSheet.create({
   actionButtonDisabled: { borderColor: '#E0E0E0', opacity: 0.6 },
   actionText: { color: '#6C63FF', fontWeight: '600' },
   actionTextDisabled: { color: '#999' },
+  // --- Styles pour le bouton Commentaires (visible quand terminé) ---
+  commentContainer: { marginBottom: 16 },
+  commentButton: {
+    backgroundColor: '#6C63FF',
+    padding: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  commentButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  // -----------------------------------------------------------------
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 24, marginBottom: 12 },
   contributionCard: {
     backgroundColor: '#FFF',

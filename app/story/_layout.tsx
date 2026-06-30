@@ -7,6 +7,8 @@ export default function StoryLayout() {
       <Stack.Screen name="[id]" options={{ headerShown: false }} />
       <Stack.Screen name="contribute" options={{ headerShown: false }} />
       <Stack.Screen name="vote" options={{ headerShown: false }} />
+      <Stack.Screen name="comments" options={{ headerShown: false }} />
+      <Stack.Screen name="share" options={{ headerShown: false }} />
     </Stack>
   );
 }
