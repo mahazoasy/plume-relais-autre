@@ -11,6 +11,7 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
+import { TextInput } from 'react-native';
 import { getStatusLabel, getStatusColor, truncateText } from '../../src/utils/helpers';
 
 interface Story {

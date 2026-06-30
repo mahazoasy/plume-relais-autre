@@ -52,15 +52,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
-  const signOut = async (navigationCallback?: () => void) => {
-    await supabase.auth.signOut();
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      throw error;
+    }
+
     setUser(null);
     setSession(null);
-    if (navigationCallback) {
-      navigationCallback();
-    }
   };
-
   return (
     <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
       {children}

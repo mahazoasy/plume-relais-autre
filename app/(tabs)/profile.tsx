@@ -8,6 +8,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -21,9 +22,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
+  // Redirection automatique vers login si user devient null
   useEffect(() => {
-    if (!user && !loading && !signingOut) {
-      // Si l'utilisateur n'est pas connecté, rediriger vers login
+    if (!loading && !user) {
       router.replace('/login');
     }
   }, [user, loading]);
@@ -74,35 +75,49 @@ export default function Profile() {
       setLoading(false);
     }
   };
+  const handleSignOut = async () => {
+    const logout = async () => {
+      try {
+        setSigningOut(true);
 
-  const handleSignOut = () => {
-    Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Déconnecter',
-          style: 'destructive',
-          onPress: async () => {
-            setSigningOut(true);
-            try {
-              await signOut(() => {
-                router.replace('/login');
-              });
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de se déconnecter.');
-            } finally {
-              setSigningOut(false);
-            }
+        await signOut();
+
+        router.replace('/');
+      } catch (error) {
+        console.error('Erreur lors de la déconnexion :', error);
+      } finally {
+        setSigningOut(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(
+        'Êtes-vous sûr de vouloir vous déconnecter ?'
+      );
+
+      if (confirmed) {
+        await logout();
+      }
+    } else {
+      Alert.alert(
+        'Déconnexion',
+        'Êtes-vous sûr de vouloir vous déconnecter ?',
+        [
+          {
+            text: 'Annuler',
+            style: 'cancel',
           },
-        },
-      ]
-    );
+          {
+            text: 'Déconnecter',
+            style: 'destructive',
+            onPress: logout,
+          },
+        ]
+      );
+    }
   };
 
   if (!user && !loading) {
-    // Si user est null et loading est false, on ne rend rien (le useEffect redirige)
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#6C63FF" />

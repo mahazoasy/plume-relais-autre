@@ -9,15 +9,21 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <StatusBar style="dark" />
-        <Stack>
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="register" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="story" options={{ headerShown: false }} />
-          <Stack.Screen name="notifications" options={{ headerShown: false }} />
-          <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-          <Stack.Screen name="profile/stories" options={{ headerShown: false }} />
+
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade',
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="login" />
+          <Stack.Screen name="register" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="story" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="profile/edit" />
+          <Stack.Screen name="profile/stories" />
         </Stack>
       </AuthProvider>
     </SafeAreaProvider>
