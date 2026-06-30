@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Image,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +36,7 @@ export default function Profile() {
   if (!user) {
     return (
       <View style={styles.container}>
-        <Text>Veuillez vous connecter</Text>
+        <Text style={styles.emptyText}>Veuillez vous connecter</Text>
         <TouchableOpacity onPress={() => router.push('/login')}>
           <Text style={styles.link}>Aller à la connexion</Text>
         </TouchableOpacity>
@@ -36,11 +44,10 @@ export default function Profile() {
     );
   }
 
-  // Récupérer le username depuis les métadonnées ou l'email
   const username = user.user_metadata?.username || user.email?.split('@')[0] || 'Utilisateur';
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Image
           source={{
@@ -73,14 +80,17 @@ export default function Profile() {
         <TouchableOpacity style={styles.menuItem}>
           <Ionicons name="person-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Modifier le profil</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuItem}>
           <Ionicons name="book-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Mes histoires</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.menuItem}>
           <Ionicons name="notifications-outline" size={24} color="#6C63FF" />
           <Text style={styles.menuText}>Notifications</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
         </TouchableOpacity>
       </View>
 
@@ -88,15 +98,12 @@ export default function Profile() {
         <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
         <Text style={styles.signOutText}>Se déconnecter</Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
+  container: { flex: 1, backgroundColor: '#F8F9FA' },
   header: {
     alignItems: 'center',
     padding: 24,
@@ -111,17 +118,8 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#6C63FF',
   },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
-  },
-  email: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
+  username: { fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 12 },
+  email: { fontSize: 14, color: '#666', marginTop: 4 },
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -130,23 +128,10 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 12,
   },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#6C63FF',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: '#E0E0E0',
-  },
+  statItem: { alignItems: 'center' },
+  statValue: { fontSize: 20, fontWeight: 'bold', color: '#6C63FF' },
+  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+  statDivider: { width: 1, backgroundColor: '#E0E0E0' },
   menu: {
     backgroundColor: '#FFF',
     margin: 16,
@@ -160,11 +145,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  menuText: {
-    fontSize: 16,
-    color: '#333',
-    marginLeft: 12,
-  },
+  menuText: { fontSize: 16, color: '#333', flex: 1, marginLeft: 12 },
+  menuArrow: { marginLeft: 'auto' },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -176,14 +158,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF3B30',
   },
-  signOutText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  link: {
-    color: '#6C63FF',
-    marginTop: 10,
-  },
+  signOutText: { fontSize: 16, color: '#FF3B30', fontWeight: '600', marginLeft: 8 },
+  emptyText: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 40 },
+  link: { color: '#6C63FF', textAlign: 'center', marginTop: 10 },
 });

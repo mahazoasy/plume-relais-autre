@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { supabase } from '../../src/config/supabase';
+import { storiesService } from '../../src/services/supabase/stories';
+import { contributionsService } from '../../src/services/supabase/contributions';
 import { Ionicons } from '@expo/vector-icons';
 import { validateContent } from '../../src/utils/validators';
 import { getTimeRemaining, formatTimeRemaining } from '../../src/utils/helpers';
@@ -37,13 +38,7 @@ export default function Contribute() {
 
   const fetchStory = async () => {
     try {
-      const { data, error } = await supabase
-        .from('stories')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
+      const data = await storiesService.getStoryById(id as string);
       setStory(data);
       if (data) {
         setTimeRemaining(getTimeRemaining(data.created_at, data.turn_duration));
@@ -72,32 +67,13 @@ export default function Contribute() {
 
     setLoading(true);
     try {
-      // Vérifier si l'utilisateur a déjà contribué pour ce tour
-      const { data: existing, error: checkError } = await supabase
-        .from('contributions')
-        .select('*')
-        .eq('story_id', id)
-        .eq('author_id', user.id)
-        .eq('turn_number', story.current_turn)
-        .maybeSingle();
-
-      if (existing) {
-        Alert.alert('Erreur', 'Vous avez déjà contribué pour ce tour');
-        setLoading(false);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('contributions')
-        .insert([{
-          story_id: id,
-          author_id: user.id,
-          content: content.trim(),
-          turn_number: story.current_turn,
-          is_canon: false,
-        }]);
-
-      if (error) throw error;
+      await contributionsService.addContribution({
+        story_id: id as string,
+        author_id: user.id,
+        content: content.trim(),
+        turn_number: story.current_turn,
+        is_canon: false,
+      });
 
       Alert.alert('Succès', 'Votre contribution a été soumise !', [
         { text: 'OK', onPress: () => router.back() },

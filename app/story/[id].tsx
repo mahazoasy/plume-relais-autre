@@ -11,9 +11,18 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
-import { supabase } from '../../src/config/supabase';
+import { storiesService } from '../../src/services/supabase/stories';
+import { contributionsService } from '../../src/services/supabase/contributions';
+import { votesService } from '../../src/services/supabase/votes';
 import { Ionicons } from '@expo/vector-icons';
-import { formatDate, getStatusLabel, getStatusColor, getTimeRemaining, formatTimeRemaining } from '../../src/utils/helpers';
+import {
+  formatDate,
+  getStatusLabel,
+  getStatusColor,
+  getTimeRemaining,
+  formatTimeRemaining,
+  truncateText,
+} from '../../src/utils/helpers';
 
 interface Contribution {
   id: string;
@@ -35,9 +44,9 @@ interface Story {
   blind_mode: boolean;
   turn_duration: number;
   created_at: string;
-  max_contributions: number;
   created_by: string;
   created_by_user?: { username: string; avatar_url?: string };
+  max_contributions: number;
 }
 
 export default function StoryDetail() {
@@ -51,156 +60,51 @@ export default function StoryDetail() {
   const [isParticipant, setIsParticipant] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
-    setupRealtime();
-
-    // Timer pour le temps restant
     const timer = setInterval(() => {
       if (story) {
         const remaining = getTimeRemaining(story.created_at, story.turn_duration);
         setTimeRemaining(remaining);
       }
     }, 1000);
-
-    return () => {
-      clearInterval(timer);
-      if (subscription) {
-        supabase.removeChannel(subscription);
-      }
-    };
+    return () => clearInterval(timer);
   }, [id]);
-
-  const setupRealtime = () => {
-    // S'abonner aux changements de l'histoire
-    const storyChannel = supabase
-      .channel(`story:${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'stories',
-          filter: `id=eq.${id}`,
-        },
-        (payload) => {
-          setStory(payload.new as Story);
-        }
-      )
-      .subscribe();
-
-    // S'abonner aux nouvelles contributions
-    const contributionsChannel = supabase
-      .channel(`contributions:${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'contributions',
-          filter: `story_id=eq.${id}`,
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'contributions',
-          filter: `story_id=eq.${id}`,
-        },
-        () => {
-          fetchData();
-        }
-      )
-      .subscribe();
-
-    setSubscription(storyChannel);
-  };
 
   const fetchData = async () => {
     try {
-      // Récupérer l'histoire
-      const storyData = await supabase
-        .from('stories')
-        .select(`
-          *,
-          created_by_user:users!created_by(username, avatar_url)
-        `)
-        .eq('id', id)
-        .single();
+      const storyData = await storiesService.getStoryById(id as string);
+      setStory(storyData);
 
-      if (storyData.error) throw storyData.error;
-      setStory(storyData.data);
+      const canon = await contributionsService.getCanonContributions(id as string);
+      setContributions(canon);
 
-      // Récupérer les contributions canoniques
-      const canon = await supabase
-        .from('contributions')
-        .select(`
-          *,
-          author:users(username, avatar_url),
-          votes(count)
-        `)
-        .eq('story_id', id)
-        .eq('is_canon', true)
-        .order('turn_number', { ascending: true });
-
-      if (canon.error) throw canon.error;
-      setContributions(canon.data || []);
-
-      // Récupérer les contributions en attente du tour actuel
-      if (storyData.data) {
-        const pending = await supabase
-          .from('contributions')
-          .select(`
-            *,
-            author:users(username, avatar_url),
-            votes(count)
-          `)
-          .eq('story_id', id)
-          .eq('turn_number', storyData.data.current_turn)
-          .eq('is_canon', false);
-
-        if (pending.error) throw pending.error;
-        setPendingContributions(pending.data || []);
+      if (storyData?.current_turn) {
+        const pending = await contributionsService.getPendingContributions(
+          id as string,
+          storyData.current_turn
+        );
+        setPendingContributions(pending);
       }
 
-      // Vérifier si l'utilisateur est participant
       if (user) {
-        const participant = await supabase
-          .from('story_participations')
-          .select('*')
-          .eq('story_id', id)
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const participant = await storiesService.checkParticipation(id as string, user.id);
+        setIsParticipant(participant);
 
-        setIsParticipant(!!participant.data);
-
-        // Vérifier si l'utilisateur a déjà voté pour ce tour
-        if (storyData.data) {
-          const vote = await supabase
-            .from('votes')
-            .select('*')
-            .eq('story_id', id)
-            .eq('user_id', user.id)
-            .eq('turn_number', storyData.data.current_turn)
-            .maybeSingle();
-
-          setHasVoted(!!vote.data);
-        }
+        const vote = await votesService.getUserVoteForTurn(
+          id as string,
+          user.id,
+          storyData?.current_turn || 1
+        );
+        setHasVoted(!!vote);
       }
 
-      if (storyData.data) {
-        const remaining = getTimeRemaining(storyData.data.created_at, storyData.data.turn_duration);
+      if (storyData) {
+        const remaining = getTimeRemaining(storyData.created_at, storyData.turn_duration);
         setTimeRemaining(remaining);
       }
     } catch (error: any) {
-      console.error('Error fetching data:', error);
       Alert.alert('Erreur', error.message);
     } finally {
       setLoading(false);
@@ -219,11 +123,7 @@ export default function StoryDetail() {
       return;
     }
     try {
-      const { error } = await supabase
-        .from('story_participations')
-        .insert([{ story_id: id, user_id: user.id }]);
-
-      if (error) throw error;
+      await storiesService.joinStory(id as string, user.id);
       setIsParticipant(true);
       Alert.alert('Succès', 'Vous avez rejoint l\'histoire !');
       fetchData();
@@ -266,9 +166,7 @@ export default function StoryDetail() {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -290,20 +188,18 @@ export default function StoryDetail() {
             <Text style={[styles.status, { color: getStatusColor(story.status) }]}>
               {getStatusLabel(story.status)}
             </Text>
-            <Text style={styles.turn}>Tour {story.current_turn} / {story.max_contributions}</Text>
+            <Text style={styles.turn}>
+              Tour {story.current_turn} / {story.max_contributions}
+            </Text>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.meta}>
-              👤 {story.created_by_user?.username || 'Anonyme'}
-            </Text>
-            <Text style={styles.meta}>
-              🕐 {formatDate(story.created_at)}
-            </Text>
+            <Text style={styles.meta}>👤 {story.created_by_user?.username || 'Anonyme'}</Text>
+            <Text style={styles.meta}>🕐 {formatDate(story.created_at)}</Text>
           </View>
           {!isCompleted && (
             <View style={styles.timerContainer}>
-              <Text style={[styles.timerLabel, timeRemaining <= 0 && styles.timerExpired]}>
-                ⏱️ {timeRemaining <= 0 ? '⏰ Temps écoulé' : formatTimeRemaining(timeRemaining)}
+              <Text style={styles.timerLabel}>
+                ⏱️ Temps restant : {formatTimeRemaining(timeRemaining)}
               </Text>
             </View>
           )}
@@ -384,10 +280,6 @@ export default function StoryDetail() {
                   </View>
                 </View>
                 <Text style={styles.contributionText}>{contribution.content}</Text>
-                <View style={styles.contributionFooter}>
-                  <Text style={styles.contributionDate}>{formatDate(contribution.created_at)}</Text>
-                  <Text style={styles.voteCount}>👍 {contribution.votes_count || 0}</Text>
-                </View>
               </View>
             ))}
           </>
@@ -432,7 +324,6 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12, color: '#999' },
   timerContainer: { marginTop: 8, padding: 8, backgroundColor: '#F0F0FF', borderRadius: 8 },
   timerLabel: { fontSize: 14, color: '#6C63FF', fontWeight: '600' },
-  timerExpired: { color: '#FF3B30' },
   blindBadge: {
     marginTop: 8,
     backgroundColor: '#FFF3E0',
