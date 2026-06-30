@@ -11,30 +11,39 @@ export default function Share() {
   const handleShare = async () => {
     try {
       if (Platform.OS === 'web') {
-        // Vérifier si l'API Web Share est disponible
+        // Essayer d'abord l'API Web Share
         if (navigator.share) {
           await navigator.share({
             title: 'Partager cette histoire',
             text: `Découvrez cette histoire sur Plume Relais : ${url}`,
             url,
           });
-        } else if (navigator.clipboard) {
-          // Fallback : copier le lien dans le presse-papiers
+          return;
+        }
+        
+        // Fallback : créer un lien cliquable dans une nouvelle fenêtre
+        // ou copier dans le presse-papiers
+        try {
           await navigator.clipboard.writeText(url);
-          Alert.alert('Lien copié', 'Le lien a été copié dans votre presse-papiers.');
-        } else {
-          // Dernier recours : afficher le lien dans une alerte
-          Alert.alert('Partager', `Copiez ce lien : ${url}`);
+          Alert.alert('✅ Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+        } catch (clipError) {
+          // Si la copie échoue, ouvrir une nouvelle fenêtre avec le lien
+          window.open(url, '_blank');
+          Alert.alert('Lien ouvert', 'Le lien s\'est ouvert dans un nouvel onglet.');
         }
       } else {
         // Sur mobile, utiliser expo-sharing
-        await Sharing.shareAsync(url, {
-          dialogTitle: 'Partager cette histoire',
-          mimeType: 'text/plain',
-        });
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(url, {
+            dialogTitle: 'Partager cette histoire',
+            mimeType: 'text/plain',
+          });
+        } else {
+          Alert.alert('Info', 'Le partage n\'est pas disponible sur cet appareil.');
+        }
       }
     } catch (error: any) {
-      // Ignorer les annulations de l'utilisateur
       if (
         error.message?.includes('canceled') ||
         error.message?.includes('AbortError') ||
@@ -57,12 +66,14 @@ export default function Share() {
         <View style={{ width: 24 }} />
       </View>
       <View style={styles.content}>
-        <Text style={styles.title}>Partagez cette histoire</Text>
+        <Text style={styles.title}>📤 Partagez cette histoire</Text>
         <Text style={styles.subtitle}>Envoyez le lien à vos amis</Text>
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-social" size={32} color="#FFF" />
           <Text style={styles.shareText}>Partager maintenant</Text>
         </TouchableOpacity>
+        {/* Affichage du lien au cas où */}
+        <Text style={styles.linkDisplay}>🔗 {url}</Text>
       </View>
     </View>
   );
@@ -93,4 +104,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   shareText: { color: '#FFF', fontSize: 18, fontWeight: '600' },
+  linkDisplay: {
+    marginTop: 24,
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
 });

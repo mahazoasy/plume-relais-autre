@@ -14,6 +14,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
 import { votesService } from '../../src/services/supabase/votes';
+import { notificationsService } from '../../src/services/supabase/notifications';
 import { Ionicons } from '@expo/vector-icons';
 import {
   formatDate,
@@ -125,6 +126,15 @@ export default function StoryDetail() {
     try {
       await storiesService.joinStory(id as string, user.id);
       setIsParticipant(true);
+      
+      await notificationsService.createNotification({
+        user_id: user.id,
+        type: 'vote_open',
+        title: 'Vous avez rejoint une histoire !',
+        message: `Vous participez maintenant à "${story?.title}"`,
+        story_id: id as string,
+      });
+      
       Alert.alert('Succès', 'Vous avez rejoint l\'histoire !');
       fetchData();
     } catch (error: any) {
@@ -148,6 +158,16 @@ export default function StoryDetail() {
     router.push(`/story/share?id=${id}`);
   };
 
+  // ✅ Fonction de retour avec fallback
+  const handleGoBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // Redirige vers l'accueil si aucun historique
+      router.replace('/(tabs)/home');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -160,7 +180,7 @@ export default function StoryDetail() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>Histoire non trouvée</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleGoBack}>
           <Text style={styles.backLink}>Retour</Text>
         </TouchableOpacity>
       </View>
@@ -177,7 +197,8 @@ export default function StoryDetail() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        {/*  Bouton retour avec handleGoBack */}
+        <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
@@ -251,7 +272,6 @@ export default function StoryDetail() {
           </View>
         )}
 
-        {/* SECTION COMMENTAIRES - affichée uniquement si l'histoire est terminée */}
         {isCompleted && (
           <View style={styles.commentContainer}>
             <TouchableOpacity
@@ -312,6 +332,7 @@ export default function StoryDetail() {
   );
 }
 
+// Styles inchangés...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -380,7 +401,6 @@ const styles = StyleSheet.create({
   actionButtonDisabled: { borderColor: '#E0E0E0', opacity: 0.6 },
   actionText: { color: '#6C63FF', fontWeight: '600' },
   actionTextDisabled: { color: '#999' },
-  // --- Styles pour le bouton Commentaires (visible quand terminé) ---
   commentContainer: { marginBottom: 16 },
   commentButton: {
     backgroundColor: '#6C63FF',
@@ -392,7 +412,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   commentButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  // -----------------------------------------------------------------
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 24, marginBottom: 12 },
   contributionCard: {
     backgroundColor: '#FFF',

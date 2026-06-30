@@ -15,6 +15,7 @@ import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
 import { Ionicons } from '@expo/vector-icons';
 import { validateContent } from '../../src/utils/validators';
+import { notificationsService } from '../../src/services/supabase/notifications';
 import { getTimeRemaining, formatTimeRemaining } from '../../src/utils/helpers';
 
 export default function Contribute() {
@@ -73,6 +74,14 @@ export default function Contribute() {
         content: content.trim(),
         turn_number: story.current_turn,
         is_canon: false,
+      });
+
+      await notificationsService.createNotification({
+        user_id: user.id,
+        type: 'contribution_accepted',
+        title: 'Votre contribution est en attente',
+        message: `Votre proposition pour "${story.title}" sera soumise au vote.`,
+        story_id: id as string,
       });
 
       Alert.alert('Succès', 'Votre contribution a été soumise !', [

@@ -63,10 +63,15 @@ export default function Comments() {
     }
   };
 
+  // Fonction de retour robuste
   const handleGoBack = () => {
-    // Retourner à l'écran précédent (le détail de l'histoire)
-    router.back();
-    // Alternative : router.push(`/story/${id}`) si le back ne fonctionne pas
+    // Retourner à la page précédente (détail de l'histoire)
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // Fallback si le back ne fonctionne pas
+      router.replace(`/story/${id}`);
+    }
   };
 
   const renderItem = ({ item }: { item: any }) => (

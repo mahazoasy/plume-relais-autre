@@ -13,6 +13,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
 import { votesService } from '../../src/services/supabase/votes';
+import { notificationsService } from '../../src/services/supabase/notifications';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Contribution {
@@ -89,6 +90,25 @@ export default function Vote() {
       });
 
       setUserVote(contributionId);
+      
+      if (story.status === 'completed' || story.current_turn >= story.max_contributions) {
+        await notificationsService.createNotification({
+          user_id: user.id,
+          type: 'story_completed',
+          title: '🎉 Histoire terminée !',
+          message: `"${story.title}" est maintenant terminée. Bravo à tous les participants !`,
+          story_id: id as string,
+        });
+      } else {
+        await notificationsService.createNotification({
+          user_id: user.id,
+          type: 'vote_open',
+          title: 'Vote enregistré',
+          message: `Votre vote pour "${story.title}" a bien été pris en compte.`,
+          story_id: id as string,
+        });
+      }
+
       Alert.alert('Succès', 'Votre vote a été enregistré !');
       fetchData();
     } catch (error: any) {
