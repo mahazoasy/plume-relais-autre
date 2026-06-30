@@ -11,27 +11,39 @@ export default function Share() {
   const handleShare = async () => {
     try {
       if (Platform.OS === 'web') {
+        // Vérifier si l'API Web Share est disponible
         if (navigator.share) {
           await navigator.share({
             title: 'Partager cette histoire',
             text: `Découvrez cette histoire sur Plume Relais : ${url}`,
             url,
           });
-        } else {
+        } else if (navigator.clipboard) {
+          // Fallback : copier le lien dans le presse-papiers
           await navigator.clipboard.writeText(url);
           Alert.alert('Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+        } else {
+          // Dernier recours : afficher le lien dans une alerte
+          Alert.alert('Partager', `Copiez ce lien : ${url}`);
         }
       } else {
+        // Sur mobile, utiliser expo-sharing
         await Sharing.shareAsync(url, {
           dialogTitle: 'Partager cette histoire',
           mimeType: 'text/plain',
         });
       }
     } catch (error: any) {
-      if (error.message?.includes('canceled') || error.message?.includes('AbortError')) {
+      // Ignorer les annulations de l'utilisateur
+      if (
+        error.message?.includes('canceled') ||
+        error.message?.includes('AbortError') ||
+        error.name === 'AbortError'
+      ) {
         return;
       }
-      Alert.alert('Erreur', 'Impossible de partager');
+      Alert.alert('Erreur', 'Impossible de partager. Veuillez réessayer.');
+      console.warn('Share error:', error);
     }
   };
 
