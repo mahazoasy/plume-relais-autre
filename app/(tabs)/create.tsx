@@ -159,9 +159,21 @@ export default function Create() {
       // 4. Ajouter le créateur comme participant
       await storiesService.joinStory(story.id, user.id);
 
-      Alert.alert('Succès', 'Histoire créée avec succès !', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // Redirection vers l'accueil après création
+      Alert.alert(
+        'Succès',
+        'Histoire créée avec succès !',
+        [
+          {
+            text: 'Voir mes histoires',
+            onPress: () => {
+              // Rediriger vers l'onglet Accueil (qui affiche la liste des histoires)
+              router.replace('/(tabs)/home');
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue');
     } finally {

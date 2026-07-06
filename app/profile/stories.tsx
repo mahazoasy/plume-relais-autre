@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Image, 
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -14,9 +15,19 @@ import { storiesService } from '../../src/services/supabase/stories';
 import { getStatusLabel, getStatusColor, truncateText } from '../../src/utils/helpers';
 import { Ionicons } from '@expo/vector-icons';
 
+interface Story {
+  id: string;
+  title: string;
+  description?: string;
+  cover_image?: string;
+  status: string;
+  current_turn: number;
+  created_at: string;
+}
+
 export default function MyStories() {
   const { user } = useAuth();
-  const [stories, setStories] = useState([]);
+  const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -43,22 +54,32 @@ export default function MyStories() {
     fetchStories();
   };
 
-  const renderItem = ({ item }: any) => (
+  const renderItem = ({ item }: { item: Story }) => (
     <TouchableOpacity
       style={styles.card}
       onPress={() => router.push(`/story/${item.id}`)}
     >
-      <Text style={styles.cardTitle}>{item.title}</Text>
-      {item.description && (
-        <Text style={styles.cardDesc} numberOfLines={2}>
-          {truncateText(item.description, 80)}
-        </Text>
+      {/* MINIATURE DE L'IMAGE DE COUVERTURE */}
+      {item.cover_image && (
+        <Image
+          source={{ uri: item.cover_image }}
+          style={styles.coverThumbnail}
+          resizeMode="cover"
+        />
       )}
-      <View style={styles.cardFooter}>
-        <Text style={[styles.cardStatus, { color: getStatusColor(item.status) }]}>
-          {getStatusLabel(item.status)}
-        </Text>
-        <Text style={styles.cardTurn}>Tour {item.current_turn}</Text>
+      <View style={styles.cardContent}>
+        <Text style={styles.cardTitle}>{item.title}</Text>
+        {item.description && (
+          <Text style={styles.cardDesc} numberOfLines={2}>
+            {truncateText(item.description, 80)}
+          </Text>
+        )}
+        <View style={styles.cardFooter}>
+          <Text style={[styles.cardStatus, { color: getStatusColor(item.status) }]}>
+            {getStatusLabel(item.status)}
+          </Text>
+          <Text style={styles.cardTurn}>Tour {item.current_turn}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -108,8 +129,9 @@ const styles = StyleSheet.create({
   loader: { flex: 1, justifyContent: 'center' },
   list: { padding: 16, flexGrow: 1 },
   card: {
+    flexDirection: 'row', 
     backgroundColor: '#FFF',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     marginBottom: 12,
     shadowColor: '#000',
@@ -118,9 +140,24 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  coverThumbnail: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#F0F0F0',
+  },
+  cardContent: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   cardDesc: { fontSize: 14, color: '#666', marginTop: 4 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
   cardStatus: { fontSize: 12, fontWeight: '600' },
   cardTurn: { fontSize: 12, color: '#999' },
   empty: { paddingVertical: 60, alignItems: 'center' },
