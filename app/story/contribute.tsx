@@ -13,9 +13,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
+import { notificationsService } from '../../src/services/supabase/notifications';
+import { sendPushNotification } from '../../src/services/notifications/push';
+import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { validateContent } from '../../src/utils/validators';
-import { notificationsService } from '../../src/services/supabase/notifications';
 import { getTimeRemaining, formatTimeRemaining } from '../../src/utils/helpers';
 
 export default function Contribute() {
@@ -68,6 +70,7 @@ export default function Contribute() {
 
     setLoading(true);
     try {
+      // 1. Ajouter la contribution
       await contributionsService.addContribution({
         story_id: id as string,
         author_id: user.id,
@@ -76,6 +79,7 @@ export default function Contribute() {
         is_canon: false,
       });
 
+      // 2. Créer la notification en base
       await notificationsService.createNotification({
         user_id: user.id,
         type: 'contribution_accepted',
@@ -83,6 +87,31 @@ export default function Contribute() {
         message: `Votre proposition pour "${story.title}" sera soumise au vote.`,
         story_id: id as string,
       });
+
+      // 3. Envoyer une notification push aux participants (y compris l'auteur, mais optionnel)
+      // Récupérer les tokens des participants
+      const { data: participants, error: participantsError } = await supabase
+        .from('story_participations')
+        .select('user_id, users(push_token)')
+        .eq('story_id', id);
+
+      if (!participantsError && participants) {
+        const tokens = participants
+          .map(p => p.users?.push_token)
+          .filter(token => token && typeof token === 'string');
+
+        // Envoyer à tous les participants (sauf l'auteur lui-même)
+        const otherTokens = tokens.filter((_, index) => participants[index]?.user_id !== user.id);
+
+        for (const token of otherTokens) {
+          await sendPushNotification(
+            token,
+            '📝 Nouvelle contribution',
+            `${user.user_metadata?.username || 'Un utilisateur'} a proposé une suite !`,
+            { storyId: id }
+          ).catch(err => console.warn('Erreur push:', err));
+        }
+      }
 
       Alert.alert('Succès', 'Votre contribution a été soumise !', [
         { text: 'OK', onPress: () => router.back() },

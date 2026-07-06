@@ -9,22 +9,25 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import {
   validateTitle,
   validateContent,
   validateNumber,
 } from '../../src/utils/validators';
-import { STORY_VISIBILITY } from '../../src/utils/constants';
 
 export default function Create() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [opening, setOpening] = useState('');
@@ -32,6 +35,60 @@ export default function Create() {
   const [duration, setDuration] = useState('5');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
   const [blindMode, setBlindMode] = useState(false);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<any>(null);
+
+  const pickCoverImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Erreur', 'Permission d\'accès à la galerie refusée');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.7,
+    });
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      setCoverImage(asset.uri);
+      setCoverFile(asset);
+    }
+  };
+
+  const uploadCoverImage = async (storyId: string): Promise<string | null> => {
+    if (!coverFile) return null;
+
+    setUploadingCover(true);
+    try {
+      const fileExt = coverFile.mimeType?.split('/')[1] || 'jpg';
+      const fileName = `${storyId}.${fileExt}`;
+      const filePath = `covers/${fileName}`;
+
+      const response = await fetch(coverFile.uri);
+      const blob = await response.blob();
+
+      const { error: uploadError } = await supabase.storage
+        .from('covers')
+        .upload(filePath, blob, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('covers')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error: any) {
+      Alert.alert('Erreur', 'Impossible d\'uploader l\'image de couverture : ' + error.message);
+      return null;
+    } finally {
+      setUploadingCover(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!user) {
@@ -39,7 +96,6 @@ export default function Create() {
       return;
     }
 
-    // Validations
     const titleCheck = validateTitle(title);
     if (!titleCheck.valid) {
       Alert.alert('Erreur', titleCheck.error);
@@ -80,7 +136,18 @@ export default function Create() {
       };
       const story = await storiesService.createStory(storyData);
 
-      // 2. Ajouter la contribution d'ouverture (canon)
+      // 2. Uploader l'image de couverture
+      if (coverFile) {
+        const coverUrl = await uploadCoverImage(story.id);
+        if (coverUrl) {
+          await supabase
+            .from('stories')
+            .update({ cover_image: coverUrl })
+            .eq('id', story.id);
+        }
+      }
+
+      // 3. Ajouter la contribution d'ouverture (canon)
       await contributionsService.addContribution({
         story_id: story.id,
         author_id: user.id,
@@ -89,7 +156,7 @@ export default function Create() {
         is_canon: true,
       });
 
-      // 3. Ajouter le créateur comme participant
+      // 4. Ajouter le créateur comme participant
       await storiesService.joinStory(story.id, user.id);
 
       Alert.alert('Succès', 'Histoire créée avec succès !', [
@@ -126,6 +193,20 @@ export default function Create() {
           numberOfLines={3}
         />
 
+        {/* Section image de couverture */}
+        <Text style={styles.label}>Image de couverture</Text>
+        <TouchableOpacity style={styles.coverPicker} onPress={pickCoverImage}>
+          {coverImage ? (
+            <Image source={{ uri: coverImage }} style={styles.coverPreview} />
+          ) : (
+            <>
+              <Ionicons name="image-outline" size={40} color="#999" />
+              <Text style={styles.coverPlaceholderText}>Choisir une image</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        {uploadingCover && <ActivityIndicator size="small" color="#6C63FF" style={styles.coverLoading} />}
+
         <Text style={styles.label}>Paragraphe d'ouverture *</Text>
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -137,20 +218,10 @@ export default function Create() {
         />
 
         <Text style={styles.label}>Nombre max de contributions</Text>
-        <TextInput
-          style={styles.input}
-          value={maxContrib}
-          onChangeText={setMaxContrib}
-          keyboardType="numeric"
-        />
+        <TextInput style={styles.input} value={maxContrib} onChangeText={setMaxContrib} keyboardType="numeric" />
 
         <Text style={styles.label}>Durée d'un tour (minutes)</Text>
-        <TextInput
-          style={styles.input}
-          value={duration}
-          onChangeText={setDuration}
-          keyboardType="numeric"
-        />
+        <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" />
 
         <Text style={styles.label}>Visibilité</Text>
         <View style={styles.visibilityContainer}>
@@ -191,9 +262,9 @@ export default function Create() {
         </View>
 
         <TouchableOpacity
-          style={[styles.createButton, loading && styles.createButtonDisabled]}
+          style={[styles.createButton, (loading || uploadingCover) && styles.createButtonDisabled]}
           onPress={handleCreate}
-          disabled={loading}
+          disabled={loading || uploadingCover}
         >
           {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Créer l'histoire</Text>}
         </TouchableOpacity>
@@ -261,4 +332,29 @@ const styles = StyleSheet.create({
   },
   createButtonDisabled: { opacity: 0.7 },
   createButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  coverPicker: {
+    backgroundColor: '#F5F5F5',
+    borderRadius: 10,
+    height: 160,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  coverPreview: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  coverPlaceholderText: {
+    color: '#999',
+    marginTop: 8,
+    fontSize: 14,
+  },
+  coverLoading: {
+    marginTop: 8,
+  },
 });
