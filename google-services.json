@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "830264463486",
+    "project_id": "plume-relais",
+    "storage_bucket": "plume-relais.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:830264463486:android:c6f1ef9b55a6b3f1a0082f",
+        "android_client_info": {
+          "package_name": "com.plumerelais.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RD31ZjWWnbPti9_GKPGoUjqSa81_giY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
