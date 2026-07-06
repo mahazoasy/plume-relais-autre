@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -40,6 +41,7 @@ interface Story {
   id: string;
   title: string;
   description?: string;
+  cover_image?: string; 
   status: string;
   current_turn: number;
   blind_mode: boolean;
@@ -158,12 +160,10 @@ export default function StoryDetail() {
     router.push(`/story/share?id=${id}`);
   };
 
-  // ✅ Fonction de retour avec fallback
   const handleGoBack = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      // Redirige vers l'accueil si aucun historique
       router.replace('/(tabs)/home');
     }
   };
@@ -197,7 +197,6 @@ export default function StoryDetail() {
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       <View style={styles.header}>
-        {/*  Bouton retour avec handleGoBack */}
         <TouchableOpacity onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
@@ -210,6 +209,15 @@ export default function StoryDetail() {
       </View>
 
       <View style={styles.content}>
+        {/* IMAGE DE COUVERTURE */}
+        {story.cover_image && (
+          <Image
+            source={{ uri: story.cover_image }}
+            style={styles.coverImage}
+            resizeMode="cover"
+          />
+        )}
+
         <View style={styles.infoCard}>
           <Text style={styles.title}>{story.title}</Text>
           {story.description && (
@@ -332,7 +340,6 @@ export default function StoryDetail() {
   );
 }
 
-// Styles inchangés...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FA' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -349,6 +356,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', flex: 1, marginLeft: 12 },
   content: { padding: 16 },
+  coverImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: '#F0F0F0',
+  },
   infoCard: {
     backgroundColor: '#FFF',
     padding: 16,
