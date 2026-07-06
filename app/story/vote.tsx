@@ -14,6 +14,7 @@ import { storiesService } from '../../src/services/supabase/stories';
 import { contributionsService } from '../../src/services/supabase/contributions';
 import { votesService } from '../../src/services/supabase/votes';
 import { notificationsService } from '../../src/services/supabase/notifications';
+import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
 interface Contribution {
@@ -36,6 +37,14 @@ export default function Vote() {
 
   useEffect(() => {
     fetchData();
+    // S'abonner aux changements de votes en temps réel
+    const subscription = votesService.subscribeToVotes(id as string, (payload) => {
+      // Rafraîchir les données quand un vote est ajouté ou modifié
+      fetchData();
+    });
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [id]);
 
   const fetchData = async () => {
@@ -69,6 +78,53 @@ export default function Vote() {
     }
   };
 
+  // Fonction pour clôturer le tour après le vote
+  const closeTurn = async () => {
+    if (!story) return;
+
+    try {
+      // 1. Trouver la contribution gagnante (celle avec le plus de votes)
+      const winner = await votesService.getWinningContribution(story.id, story.current_turn);
+      
+      if (!winner) {
+        console.log('Aucune contribution gagnante trouvée');
+        return;
+      }
+
+      // 2. Marquer comme canon
+      await contributionsService.markAsCanon(winner.id);
+
+      // 3. Passer au tour suivant
+      const newTurn = story.current_turn + 1;
+      await storiesService.updateTurn(story.id, newTurn);
+
+      // 4. Si le tour max est atteint, marquer comme terminée
+      if (newTurn > story.max_contributions) {
+        await storiesService.updateStoryStatus(story.id, 'completed');
+        
+        // Notifier tous les participants que l'histoire est terminée
+        const { data: participants } = await supabase
+          .from('story_participations')
+          .select('user_id')
+          .eq('story_id', story.id);
+
+        for (const p of participants || []) {
+          await notificationsService.createNotification({
+            user_id: p.user_id,
+            type: 'story_completed',
+            title: '🎉 Histoire terminée !',
+            message: `"${story.title}" est maintenant terminée. Bravo à tous !`,
+            story_id: story.id,
+          });
+        }
+      }
+
+      Alert.alert('Succès', 'Tour clôturé ! La contribution gagnante a été sélectionnée.');
+    } catch (error: any) {
+      console.error('Erreur lors de la clôture du tour:', error);
+    }
+  };
+
   const handleVote = async (contributionId: string) => {
     if (!user) {
       Alert.alert('Erreur', 'Connectez-vous d\'abord');
@@ -80,8 +136,16 @@ export default function Vote() {
       return;
     }
 
+    // Vérifier que l'utilisateur ne vote pas pour sa propre proposition
+    const selectedContribution = contributions.find(c => c.id === contributionId);
+    if (selectedContribution?.author_id === user.id) {
+      Alert.alert('Erreur', 'Vous ne pouvez pas voter pour votre propre proposition');
+      return;
+    }
+
     setVoting(true);
     try {
+      // 1. Enregistrer le vote
       await votesService.castVote({
         contribution_id: contributionId,
         user_id: user.id,
@@ -89,28 +153,30 @@ export default function Vote() {
         turn_number: story.current_turn,
       });
 
+      // 2. Mettre à jour l'état local
       setUserVote(contributionId);
-      
-      if (story.status === 'completed' || story.current_turn >= story.max_contributions) {
-        await notificationsService.createNotification({
-          user_id: user.id,
-          type: 'story_completed',
-          title: '🎉 Histoire terminée !',
-          message: `"${story.title}" est maintenant terminée. Bravo à tous les participants !`,
-          story_id: id as string,
-        });
-      } else {
-        await notificationsService.createNotification({
-          user_id: user.id,
-          type: 'vote_open',
-          title: 'Vote enregistré',
-          message: `Votre vote pour "${story.title}" a bien été pris en compte.`,
-          story_id: id as string,
-        });
-      }
+
+      // 3. Notification à l'utilisateur
+      await notificationsService.createNotification({
+        user_id: user.id,
+        type: 'vote_open',
+        title: 'Vote enregistré',
+        message: `Votre vote pour "${story.title}" a bien été pris en compte.`,
+        story_id: id as string,
+      });
 
       Alert.alert('Succès', 'Votre vote a été enregistré !');
-      fetchData();
+
+      // 4. Rafraîchir les données
+      await fetchData();
+
+      // 5. Clôturer automatiquement le tour après le vote
+      // (on attend un peu pour que les données soient à jour)
+      setTimeout(async () => {
+        await closeTurn();
+        // Rediriger vers le détail de l'histoire pour voir la mise à jour
+        router.replace(`/story/${id}`);
+      }, 500);
     } catch (error: any) {
       Alert.alert('Erreur', error.message);
     } finally {
@@ -139,7 +205,7 @@ export default function Vote() {
       <ScrollView style={styles.content}>
         <Text style={styles.title}>🗳️ Choisissez votre contribution préférée</Text>
         <Text style={styles.subtitle}>
-          {userVote ? '✅ Vous avez déjà voté' : 'Votez pour la suite de l\'histoire'}
+          {userVote ? 'Vous avez déjà voté' : 'Votez pour la suite de l\'histoire'}
         </Text>
 
         {contributions.length === 0 ? (
@@ -193,6 +259,15 @@ export default function Vote() {
               <Text style={styles.voteButtonText}>Voter pour cette contribution</Text>
             )}
           </TouchableOpacity>
+        )}
+
+        {userVote && (
+          <View style={styles.votedInfo}>
+            <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            <Text style={styles.votedInfoText}>
+              Vous avez voté ! Le tour sera clôturé automatiquement.
+            </Text>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -255,4 +330,21 @@ const styles = StyleSheet.create({
   },
   voteButtonDisabled: { opacity: 0.5 },
   voteButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  votedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0FFF0',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 16,
+    marginBottom: 40,
+    gap: 8,
+  },
+  votedInfoText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '500',
+    flex: 1,
+  },
 });
