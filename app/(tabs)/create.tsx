@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Switch,
   Image,
+  Modal, 
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -37,6 +39,8 @@ export default function Create() {
   const [blindMode, setBlindMode] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<any>(null);
+  // État pour le Modal de succès
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const pickCoverImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -159,21 +163,8 @@ export default function Create() {
       // 4. Ajouter le créateur comme participant
       await storiesService.joinStory(story.id, user.id);
 
-      // Redirection vers l'accueil après création
-      Alert.alert(
-        'Succès',
-        'Histoire créée avec succès !',
-        [
-          {
-            text: 'Voir mes histoires',
-            onPress: () => {
-              // Rediriger vers l'onglet Accueil (qui affiche la liste des histoires)
-              router.replace('/(tabs)/home');
-            },
-          },
-        ],
-        { cancelable: false }
-      );
+      // Afficher le Modal personnalisé au lieu d'Alert.alert
+      setShowSuccessModal(true);
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue');
     } finally {
@@ -181,112 +172,147 @@ export default function Create() {
     }
   };
 
+  const handleCloseModal = () => {
+    setShowSuccessModal(false);
+    // Rediriger vers l'accueil après fermeture du Modal
+    router.replace('/(tabs)/home');
+  };
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Créer une histoire</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.form}>
-        <Text style={styles.label}>Titre *</Text>
-        <TextInput style={styles.input} placeholder="Donnez un titre" value={title} onChangeText={setTitle} />
-
-        <Text style={styles.label}>Description</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Décrivez brièvement"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={3}
-        />
-
-        {/* Section image de couverture */}
-        <Text style={styles.label}>Image de couverture</Text>
-        <TouchableOpacity style={styles.coverPicker} onPress={pickCoverImage}>
-          {coverImage ? (
-            <Image source={{ uri: coverImage }} style={styles.coverPreview} />
-          ) : (
-            <>
-              <Ionicons name="image-outline" size={40} color="#999" />
-              <Text style={styles.coverPlaceholderText}>Choisir une image</Text>
-            </>
-          )}
-        </TouchableOpacity>
-        {uploadingCover && <ActivityIndicator size="small" color="#6C63FF" style={styles.coverLoading} />}
-
-        <Text style={styles.label}>Paragraphe d'ouverture *</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Commencez votre histoire..."
-          value={opening}
-          onChangeText={setOpening}
-          multiline
-          numberOfLines={4}
-        />
-
-        <Text style={styles.label}>Nombre max de contributions</Text>
-        <TextInput style={styles.input} value={maxContrib} onChangeText={setMaxContrib} keyboardType="numeric" />
-
-        <Text style={styles.label}>Durée d'un tour (minutes)</Text>
-        <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" />
-
-        <Text style={styles.label}>Visibilité</Text>
-        <View style={styles.visibilityContainer}>
-          <TouchableOpacity
-            style={[styles.visibilityOption, visibility === 'public' && styles.visibilityActive]}
-            onPress={() => setVisibility('public')}
-          >
-            <Text style={[styles.visibilityText, visibility === 'public' && styles.visibilityTextActive]}>
-              🌍 Public
-            </Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.visibilityOption, visibility === 'private' && styles.visibilityActive]}
-            onPress={() => setVisibility('private')}
-          >
-            <Text style={[styles.visibilityText, visibility === 'private' && styles.visibilityTextActive]}>
-              🔒 Privé
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Créer une histoire</Text>
+          <View style={{ width: 24 }} />
         </View>
 
-        <View style={styles.switchContainer}>
-          <Text style={styles.label}>Mode à l'aveugle</Text>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>{blindMode ? 'Activé' : 'Désactivé'}</Text>
-            <Switch
-              value={blindMode}
-              onValueChange={setBlindMode}
-              trackColor={{ false: '#E0E0E0', true: '#6C63FF' }}
-              thumbColor="#FFF"
-            />
+        <View style={styles.form}>
+          <Text style={styles.label}>Titre *</Text>
+          <TextInput style={styles.input} placeholder="Donnez un titre" value={title} onChangeText={setTitle} />
+
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Décrivez brièvement"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={3}
+          />
+
+          {/* Section image de couverture */}
+          <Text style={styles.label}>Image de couverture</Text>
+          <TouchableOpacity style={styles.coverPicker} onPress={pickCoverImage}>
+            {coverImage ? (
+              <Image source={{ uri: coverImage }} style={styles.coverPreview} />
+            ) : (
+              <>
+                <Ionicons name="image-outline" size={40} color="#999" />
+                <Text style={styles.coverPlaceholderText}>Choisir une image</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          {uploadingCover && <ActivityIndicator size="small" color="#6C63FF" style={styles.coverLoading} />}
+
+          <Text style={styles.label}>Paragraphe d'ouverture *</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Commencez votre histoire..."
+            value={opening}
+            onChangeText={setOpening}
+            multiline
+            numberOfLines={4}
+          />
+
+          <Text style={styles.label}>Nombre max de contributions</Text>
+          <TextInput style={styles.input} value={maxContrib} onChangeText={setMaxContrib} keyboardType="numeric" />
+
+          <Text style={styles.label}>Durée d'un tour (minutes)</Text>
+          <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" />
+
+          <Text style={styles.label}>Visibilité</Text>
+          <View style={styles.visibilityContainer}>
+            <TouchableOpacity
+              style={[styles.visibilityOption, visibility === 'public' && styles.visibilityActive]}
+              onPress={() => setVisibility('public')}
+            >
+              <Text style={[styles.visibilityText, visibility === 'public' && styles.visibilityTextActive]}>
+                🌍 Public
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.visibilityOption, visibility === 'private' && styles.visibilityActive]}
+              onPress={() => setVisibility('private')}
+            >
+              <Text style={[styles.visibilityText, visibility === 'private' && styles.visibilityTextActive]}>
+                🔒 Privé
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.helperText}>
-            {blindMode
-              ? 'Les participants ne verront que les derniers paragraphes'
-              : 'Les participants verront toute l\'histoire'}
-          </Text>
-        </View>
 
-        <TouchableOpacity
-          style={[styles.createButton, (loading || uploadingCover) && styles.createButtonDisabled]}
-          onPress={handleCreate}
-          disabled={loading || uploadingCover}
-        >
-          {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Créer l'histoire</Text>}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          <View style={styles.switchContainer}>
+            <Text style={styles.label}>Mode à l'aveugle</Text>
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>{blindMode ? 'Activé' : 'Désactivé'}</Text>
+              <Switch
+                value={blindMode}
+                onValueChange={setBlindMode}
+                trackColor={{ false: '#E0E0E0', true: '#6C63FF' }}
+                thumbColor="#FFF"
+              />
+            </View>
+            <Text style={styles.helperText}>
+              {blindMode
+                ? 'Les participants ne verront que les derniers paragraphes'
+                : 'Les participants verront toute l\'histoire'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.createButton, (loading || uploadingCover) && styles.createButtonDisabled]}
+            onPress={handleCreate}
+            disabled={loading || uploadingCover}
+          >
+            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Créer l'histoire</Text>}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* MODAL PERSONNALISÉ DE SUCCÈS */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="checkmark-circle" size={60} color="#4CAF50" />
+            <Text style={styles.modalTitle}>Succès</Text>
+            <Text style={styles.modalMessage}>
+              Votre histoire "{title}" a été créée avec succès !
+            </Text>
+            <TouchableOpacity style={styles.modalButton} onPress={handleCloseModal}>
+              <Text style={styles.modalButtonText}>Voir mes histoires</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -296,9 +322,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  form: { padding: 16 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 16, marginBottom: 8 },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  form: {
+    padding: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 16,
+    marginBottom: 8,
+  },
   input: {
     backgroundColor: '#FFF',
     padding: 12,
@@ -307,8 +345,14 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     fontSize: 16,
   },
-  textArea: { minHeight: 80, textAlignVertical: 'top' },
-  visibilityContainer: { flexDirection: 'row', gap: 12 },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  visibilityContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   visibilityOption: {
     flex: 1,
     padding: 12,
@@ -318,10 +362,19 @@ const styles = StyleSheet.create({
     borderColor: '#E0E0E0',
     alignItems: 'center',
   },
-  visibilityActive: { backgroundColor: '#6C63FF', borderColor: '#6C63FF' },
-  visibilityText: { color: '#666' },
-  visibilityTextActive: { color: '#FFF' },
-  switchContainer: { marginTop: 16 },
+  visibilityActive: {
+    backgroundColor: '#6C63FF',
+    borderColor: '#6C63FF',
+  },
+  visibilityText: {
+    color: '#666',
+  },
+  visibilityTextActive: {
+    color: '#FFF',
+  },
+  switchContainer: {
+    marginTop: 16,
+  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -332,8 +385,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
   },
-  switchLabel: { color: '#666' },
-  helperText: { fontSize: 12, color: '#999', marginTop: 8 },
+  switchLabel: {
+    color: '#666',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+  },
   createButton: {
     backgroundColor: '#6C63FF',
     padding: 16,
@@ -342,8 +401,14 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 40,
   },
-  createButtonDisabled: { opacity: 0.7 },
-  createButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  createButtonDisabled: {
+    opacity: 0.7,
+  },
+  createButtonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   coverPicker: {
     backgroundColor: '#F5F5F5',
     borderRadius: 10,
@@ -368,5 +433,48 @@ const styles = StyleSheet.create({
   },
   coverLoading: {
     marginTop: 8,
+  },
+  // Styles du Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#6C63FF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+  },
+  modalButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
