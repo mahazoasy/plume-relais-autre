@@ -4,11 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Image,
   ScrollView,
   ActivityIndicator,
-  Platform,
+  Modal, 
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -21,6 +20,8 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  // État pour le Modal de déconnexion
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Redirection automatique vers login si user devient null
   useEffect(() => {
@@ -75,46 +76,24 @@ export default function Profile() {
       setLoading(false);
     }
   };
-  const handleSignOut = async () => {
-    const logout = async () => {
-      try {
-        setSigningOut(true);
 
-        await signOut();
-
-        router.replace('/');
-      } catch (error) {
-        console.error('Erreur lors de la déconnexion :', error);
-      } finally {
-        setSigningOut(false);
-      }
-    };
-
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm(
-        'Êtes-vous sûr de vouloir vous déconnecter ?'
-      );
-
-      if (confirmed) {
-        await logout();
-      }
-    } else {
-      Alert.alert(
-        'Déconnexion',
-        'Êtes-vous sûr de vouloir vous déconnecter ?',
-        [
-          {
-            text: 'Annuler',
-            style: 'cancel',
-          },
-          {
-            text: 'Déconnecter',
-            style: 'destructive',
-            onPress: logout,
-          },
-        ]
-      );
+  // Fonction de déconnexion réelle
+  const handleLogout = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      setShowLogoutModal(false);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion :', error);
+    } finally {
+      setSigningOut(false);
     }
+  };
+
+  // Ouvre le Modal de confirmation
+  const handleSignOut = () => {
+    setShowLogoutModal(true);
   };
 
   if (!user && !loading) {
@@ -132,68 +111,113 @@ export default function Profile() {
     : { uri: `https://ui-avatars.com/api/?name=${username}&background=6C63FF&color=fff&size=100` };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Image source={avatarSource} style={styles.avatar} />
-        <Text style={styles.username}>{username}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-      </View>
-
-      <View style={styles.stats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.reputation}</Text>
-          <Text style={styles.statLabel}>Réputation</Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.header}>
+          <Image source={avatarSource} style={styles.avatar} />
+          <Text style={styles.username}>{username}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.stories}</Text>
-          <Text style={styles.statLabel}>Histoires</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.contributions}</Text>
-          <Text style={styles.statLabel}>Contributions</Text>
-        </View>
-      </View>
 
-      <View style={styles.menu}>
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/edit')}>
-          <Ionicons name="person-outline" size={24} color="#6C63FF" />
-          <Text style={styles.menuText}>Modifier le profil</Text>
-          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/stories')}>
-          <Ionicons name="book-outline" size={24} color="#6C63FF" />
-          <Text style={styles.menuText}>Mes histoires</Text>
-          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notifications')}>
-          <Ionicons name="notifications-outline" size={24} color="#6C63FF" />
-          <Text style={styles.menuText}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.stats}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.reputation}</Text>
+            <Text style={styles.statLabel}>Réputation</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.stories}</Text>
+            <Text style={styles.statLabel}>Histoires</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.contributions}</Text>
+            <Text style={styles.statLabel}>Contributions</Text>
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
-        onPress={handleSignOut}
-        disabled={signingOut}
+        <View style={styles.menu}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/edit')}>
+            <Ionicons name="person-outline" size={24} color="#6C63FF" />
+            <Text style={styles.menuText}>Modifier le profil</Text>
+            <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/stories')}>
+            <Ionicons name="book-outline" size={24} color="#6C63FF" />
+            <Text style={styles.menuText}>Mes histoires</Text>
+            <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/notifications')}>
+            <Ionicons name="notifications-outline" size={24} color="#6C63FF" />
+            <Text style={styles.menuText}>Notifications</Text>
+            <Ionicons name="chevron-forward" size={20} color="#999" style={styles.menuArrow} />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.signOutButton, signingOut && styles.signOutButtonDisabled]}
+          onPress={handleSignOut}
+          disabled={signingOut}
+        >
+          {signingOut ? (
+            <ActivityIndicator size="small" color="#FF3B30" />
+          ) : (
+            <>
+              <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
+              <Text style={styles.signOutText}>Se déconnecter</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* MODAL DE CONFIRMATION DE DÉCONNEXION */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
       >
-        {signingOut ? (
-          <ActivityIndicator size="small" color="#FF3B30" />
-        ) : (
-          <>
-            <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
-            <Text style={styles.signOutText}>Se déconnecter</Text>
-          </>
-        )}
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="log-out-outline" size={50} color="#FF3B30" />
+            <Text style={styles.modalTitle}>Déconnexion</Text>
+            <Text style={styles.modalMessage}>
+              Êtes-vous sûr de vouloir vous déconnecter ?
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.modalButtonCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleLogout}
+                disabled={signingOut}
+              >
+                {signingOut ? (
+                  <ActivityIndicator size="small" color="#FFF" />
+                ) : (
+                  <Text style={styles.modalButtonConfirmText}>Déconnecter</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FA',
+  },
+  scrollView: {
+    flex: 1,
+  },
   header: {
     alignItems: 'center',
     padding: 24,
@@ -201,9 +225,24 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
   },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: '#6C63FF' },
-  username: { fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 12 },
-  email: { fontSize: 14, color: '#666', marginTop: 4 },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#6C63FF',
+  },
+  username: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 12,
+  },
+  email: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 4,
+  },
   stats: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -212,10 +251,23 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 12,
   },
-  statItem: { alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: 'bold', color: '#6C63FF' },
-  statLabel: { fontSize: 12, color: '#666', marginTop: 4 },
-  statDivider: { width: 1, backgroundColor: '#E0E0E0' },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#6C63FF',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: '#E0E0E0',
+  },
   menu: {
     backgroundColor: '#FFF',
     margin: 16,
@@ -229,8 +281,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
   },
-  menuText: { fontSize: 16, color: '#333', flex: 1, marginLeft: 12 },
-  menuArrow: { marginLeft: 'auto' },
+  menuText: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+    marginLeft: 12,
+  },
+  menuArrow: {
+    marginLeft: 'auto',
+  },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -242,8 +301,86 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FF3B30',
   },
-  signOutButtonDisabled: { opacity: 0.5 },
-  signOutText: { fontSize: 16, color: '#FF3B30', fontWeight: '600', marginLeft: 8 },
-  emptyText: { fontSize: 16, color: '#666', textAlign: 'center', marginTop: 40 },
-  link: { color: '#6C63FF', textAlign: 'center', marginTop: 10 },
+  signOutButtonDisabled: {
+    opacity: 0.5,
+  },
+  signOutText: {
+    fontSize: 16,
+    color: '#FF3B30',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 40,
+  },
+  link: {
+    color: '#6C63FF',
+    textAlign: 'center',
+    marginTop: 10,
+  },
+  // Styles du Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '80%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 12,
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  modalButtonCancelText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalButtonConfirm: {
+    backgroundColor: '#FF3B30',
+  },
+  modalButtonConfirmText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
