@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 export default function Share() {
   const { id } = useLocalSearchParams();
@@ -20,7 +21,6 @@ export default function Share() {
   const handleShare = async () => {
     try {
       if (Platform.OS === 'web') {
-        // API Web Share
         if (navigator.share) {
           await navigator.share({
             title: 'Partager cette histoire',
@@ -28,12 +28,10 @@ export default function Share() {
             url,
           });
         } else {
-          // Copie du lien dans le presse-papiers
           await Clipboard.setStringAsync(url);
-          Alert.alert('✅ Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+          Alert.alert('Lien copié', 'Le lien a été copié dans votre presse-papiers.');
         }
       } else {
-        // Sur mobile : utilise l'API Share de React Native
         await RNShare.share({
           message: `📖 Découvrez cette histoire sur Plume Relais : ${url}`,
           title: 'Partager l\'histoire',
@@ -48,75 +46,102 @@ export default function Share() {
     }
   };
 
+  const handleCopy = async () => {
+    await Clipboard.setStringAsync(url);
+    Alert.alert('Lien copié', 'Le lien a été copié dans votre presse-papiers.');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Partager</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerBtn} />
       </View>
 
       <View style={styles.content}>
-        <Ionicons name="share-social" size={64} color="#6C63FF" />
+        <View style={styles.iconWrap}>
+          <Ionicons name="share-social" size={40} color={colors.primary} />
+        </View>
         <Text style={styles.title}>Partagez cette histoire</Text>
         <Text style={styles.subtitle}>Envoyez le lien à vos amis</Text>
 
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-social" size={24} color="#FFF" />
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.9}>
+          <Ionicons name="share-social" size={20} color={colors.textOnAccent} />
           <Text style={styles.shareText}>Partager maintenant</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.copyButton}
-          onPress={async () => {
-            await Clipboard.setStringAsync(url);
-            Alert.alert('✅ Lien copié', 'Le lien a été copié dans votre presse-papiers.');
-          }}
-        >
-          <Ionicons name="copy" size={20} color="#6C63FF" />
+        <TouchableOpacity style={styles.copyButton} onPress={handleCopy} activeOpacity={0.7}>
+          <Ionicons name="copy-outline" size={18} color={colors.primary} />
           <Text style={styles.copyText}>Copier le lien</Text>
         </TouchableOpacity>
 
-        <Text style={styles.linkDisplay}>🔗 {url}</Text>
+        <View style={styles.linkCard}>
+          <Ionicons name="link-outline" size={14} color={colors.textMuted} />
+          <Text style={styles.linkDisplay} numberOfLines={1}>{url}</Text>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#333', marginTop: 16 },
-  subtitle: { fontSize: 16, color: '#666', marginTop: 8, marginBottom: 32 },
+  headerBtn: { width: 32 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  content: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl },
+  iconWrap: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: colors.accentSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  title: { ...typography.h2, color: colors.textPrimary },
+  subtitle: { fontSize: 14.5, color: colors.textSecondary, marginTop: spacing.xs, marginBottom: spacing.xxl },
   shareButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 14,
+    backgroundColor: colors.accent,
+    paddingVertical: 15,
     paddingHorizontal: 32,
-    borderRadius: 12,
+    borderRadius: radius.pill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    ...shadow.button,
   },
-  shareText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  shareText: { color: colors.textOnAccent, fontSize: 15.5, fontWeight: '700' },
   copyButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    padding: 12,
+    padding: spacing.md,
   },
-  copyText: { color: '#6C63FF', fontSize: 14, fontWeight: '500' },
-  linkDisplay: { marginTop: 16, fontSize: 12, color: '#999', textAlign: 'center' },
+  copyText: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+  linkCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    maxWidth: '100%',
+  },
+  linkDisplay: { fontSize: 12.5, color: colors.textMuted, flexShrink: 1 },
 });

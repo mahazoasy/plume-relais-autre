@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/contexts/AuthContext';
 import * as Notifications from 'expo-notifications';
 import { registerForPushNotificationsAsync } from '../src/services/notifications/push';
+import { colors } from '../src/theme';
 
 // Configuration du gestionnaire de notifications (doit être en dehors du composant)
 Notifications.setNotificationHandler({
@@ -55,6 +56,7 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             animation: 'fade',
+            contentStyle: { backgroundColor: colors.background },
           }}
         >
           <Stack.Screen name="index" />
@@ -63,6 +65,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="story" />
           <Stack.Screen name="notifications" />
+          <Stack.Screen name="stats" />
           <Stack.Screen name="profile/edit" />
           <Stack.Screen name="profile/stories" />
         </Stack>

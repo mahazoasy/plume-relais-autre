@@ -7,14 +7,20 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../src/hooks/useAuth';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius, shadow, typography } from '../src/theme';
 
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
 
@@ -55,94 +61,138 @@ export default function Register() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>📖 Inscription</Text>
-      <Text style={styles.subtitle}>Rejoignez l'aventure</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.logoWrap}>
+          <Ionicons name="sparkles" size={30} color={colors.textOnPrimary} />
+        </View>
+        <Text style={styles.title}>Inscription</Text>
+        <Text style={styles.subtitle}>Rejoignez l'aventure littéraire</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nom d'utilisateur (3 caractères min)"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe (6 caractères min)"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Nom d'utilisateur</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="person-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="3 caractères min."
+              placeholderTextColor={colors.textMuted}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+          </View>
+        </View>
 
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={styles.buttonText}>S'inscrire</Text>
-        )}
-      </TouchableOpacity>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="vous@exemple.com"
+              placeholderTextColor={colors.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+        </View>
 
-      <TouchableOpacity onPress={() => router.push('/login')}>
-        <Text style={styles.link}>Déjà un compte ? Se connecter</Text>
-      </TouchableOpacity>
-    </View>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Mot de passe</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="6 caractères min."
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+          activeOpacity={0.9}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.textOnAccent} />
+          ) : (
+            <Text style={styles.buttonText}>S'inscrire</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/login')} style={styles.linkWrap}>
+          <Text style={styles.link}>
+            Déjà un compte ? <Text style={styles.linkStrong}>Se connecter</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
+  logoWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#6C63FF',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  button: {
-    backgroundColor: '#6C63FF',
-    padding: 15,
-    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
   },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  link: {
-    color: '#6C63FF',
+  title: { ...typography.h1, fontSize: 28, color: colors.textPrimary, textAlign: 'center' },
+  subtitle: {
+    fontSize: 15,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xxl,
   },
+  fieldGroup: { marginBottom: spacing.lg },
+  label: { ...typography.bodyStrong, color: colors.textPrimary, marginBottom: spacing.sm },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+  },
+  inputIcon: { marginRight: 8 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: colors.textPrimary },
+  button: {
+    backgroundColor: colors.accent,
+    padding: 16,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    marginTop: spacing.md,
+    ...shadow.button,
+  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
+  linkWrap: { marginTop: spacing.xl, alignItems: 'center' },
+  link: { color: colors.textSecondary, fontSize: 14 },
+  linkStrong: { color: colors.primary, fontWeight: '700' },
 });

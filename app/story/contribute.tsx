@@ -19,6 +19,7 @@ import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { validateContent } from '../../src/utils/validators';
 import { getTimeRemaining, formatTimeRemaining } from '../../src/utils/helpers';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 export default function Contribute() {
   const { id } = useLocalSearchParams();
@@ -70,7 +71,6 @@ export default function Contribute() {
 
     setLoading(true);
     try {
-      // 1. Ajouter la contribution
       await contributionsService.addContribution({
         story_id: id as string,
         author_id: user.id,
@@ -79,7 +79,6 @@ export default function Contribute() {
         is_canon: false,
       });
 
-      // 2. Créer la notification en base
       await notificationsService.createNotification({
         user_id: user.id,
         type: 'contribution_accepted',
@@ -88,8 +87,6 @@ export default function Contribute() {
         story_id: id as string,
       });
 
-      // 3. Envoyer une notification push aux participants (y compris l'auteur, mais optionnel)
-      // Récupérer les tokens des participants
       const { data: participants, error: participantsError } = await supabase
         .from('story_participations')
         .select('user_id, users(push_token)')
@@ -100,7 +97,6 @@ export default function Contribute() {
           .map(p => p.users?.push_token)
           .filter(token => token && typeof token === 'string');
 
-        // Envoyer à tous les participants (sauf l'auteur lui-même)
         const otherTokens = tokens.filter((_, index) => participants[index]?.user_id !== user.id);
 
         for (const token of otherTokens) {
@@ -126,7 +122,7 @@ export default function Contribute() {
   if (!story) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -136,26 +132,34 @@ export default function Contribute() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contribuer</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerBtn} />
       </View>
 
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.infoCard}>
           <Text style={styles.storyTitle}>{story.title}</Text>
           <Text style={styles.turnInfo}>
             Tour {story.current_turn} / {story.max_contributions}
           </Text>
-          <View style={styles.timerContainer}>
+          <View style={[styles.timerContainer, isTimeExpired && styles.timerContainerExpired]}>
+            <Ionicons
+              name="alarm-outline"
+              size={15}
+              color={isTimeExpired ? colors.danger : colors.info}
+            />
             <Text style={[styles.timerText, isTimeExpired && styles.timerExpired]}>
-              ⏱️ {isTimeExpired ? '⏰ Temps écoulé' : formatTimeRemaining(timeRemaining)}
+              {isTimeExpired ? 'Temps écoulé' : formatTimeRemaining(timeRemaining)}
             </Text>
           </View>
           {story.blind_mode && (
-            <Text style={styles.blindInfo}>🙈 Mode à l'aveugle activé</Text>
+            <View style={styles.blindBadge}>
+              <Ionicons name="eye-off-outline" size={13} color={colors.warning} />
+              <Text style={styles.blindInfo}>Mode à l'aveugle activé</Text>
+            </View>
           )}
         </View>
 
@@ -168,7 +172,8 @@ export default function Contribute() {
 
         <TextInput
           style={[styles.textArea, isTimeExpired && styles.textAreaDisabled]}
-          placeholder={isTimeExpired ? '⏰ Temps écoulé...' : 'Écrivez ici...'}
+          placeholder={isTimeExpired ? 'Temps écoulé...' : 'Écrivez ici...'}
+          placeholderTextColor={colors.textMuted}
           value={content}
           onChangeText={setContent}
           multiline
@@ -184,12 +189,13 @@ export default function Contribute() {
           ]}
           onPress={handleSubmit}
           disabled={isTimeExpired || !content.trim() || loading}
+          activeOpacity={0.9}
         >
           {loading ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={colors.textOnAccent} />
           ) : (
             <Text style={styles.submitButtonText}>
-              {isTimeExpired ? '⏰ Temps écoulé' : 'Soumettre'}
+              {isTimeExpired ? 'Temps écoulé' : 'Soumettre'}
             </Text>
           )}
         </TouchableOpacity>
@@ -199,51 +205,73 @@ export default function Contribute() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  content: { padding: 16, flex: 1 },
+  headerBtn: { width: 32 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  content: { paddingHorizontal: spacing.lg, flex: 1 },
   infoCard: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    marginBottom: spacing.lg,
+    ...shadow.card,
   },
-  storyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  turnInfo: { fontSize: 14, color: '#666', marginTop: 4 },
-  timerContainer: { marginTop: 8, padding: 8, backgroundColor: '#F0F0FF', borderRadius: 8 },
-  timerText: { fontSize: 14, color: '#6C63FF', fontWeight: '600' },
-  timerExpired: { color: '#FF3B30' },
-  blindInfo: { fontSize: 12, color: '#FF9800', marginTop: 8 },
-  label: { fontSize: 18, fontWeight: 'bold', color: '#333', marginTop: 16 },
-  hint: { fontSize: 14, color: '#666', marginTop: 4, marginBottom: 12 },
-  textArea: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    fontSize: 16,
-    minHeight: 200,
-  },
-  textAreaDisabled: { backgroundColor: '#F5F5F5', opacity: 0.7 },
-  submitButton: {
-    backgroundColor: '#6C63FF',
-    padding: 16,
-    borderRadius: 12,
+  storyTitle: { ...typography.h3, color: colors.textPrimary },
+  turnInfo: { fontSize: 13.5, color: colors.textSecondary, marginTop: 4 },
+  timerContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 40,
+    gap: 6,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: colors.infoBg,
+    borderRadius: radius.pill,
   },
-  submitButtonDisabled: { backgroundColor: '#CCC' },
-  submitButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  timerContainerExpired: { backgroundColor: colors.dangerBg },
+  timerText: { fontSize: 13, color: colors.info, fontWeight: '700' },
+  timerExpired: { color: colors.danger },
+  blindBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    alignSelf: 'flex-start',
+    marginTop: spacing.sm,
+  },
+  blindInfo: { fontSize: 12, color: colors.warning, fontWeight: '600' },
+  label: { ...typography.h3, color: colors.textPrimary, marginTop: spacing.md },
+  hint: { fontSize: 13.5, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.md },
+  textArea: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    fontSize: 15.5,
+    color: colors.textPrimary,
+    minHeight: 200,
+    lineHeight: 22,
+  },
+  textAreaDisabled: { backgroundColor: colors.surfaceAlt, opacity: 0.7 },
+  submitButton: {
+    backgroundColor: colors.accent,
+    padding: 16,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    marginTop: spacing.lg,
+    marginBottom: spacing.xxxl,
+    ...shadow.button,
+  },
+  submitButtonDisabled: { backgroundColor: colors.border, shadowOpacity: 0, elevation: 0 },
+  submitButtonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
 });

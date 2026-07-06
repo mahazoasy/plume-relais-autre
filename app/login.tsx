@@ -7,13 +7,19 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from '../src/config/supabase';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius, shadow, typography } from '../src/theme';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -31,7 +37,6 @@ export default function Login() {
 
     if (error) {
       console.error('Login error:', error);
-      // Affiche le message d'erreur exact de Supabase
       Alert.alert('Erreur de connexion', error.message);
       return;
     }
@@ -42,87 +47,123 @@ export default function Login() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>📖 Plume Relais</Text>
-      <Text style={styles.subtitle}>Connectez-vous</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <View style={styles.logoWrap}>
+          <Ionicons name="book" size={34} color={colors.textOnPrimary} />
+        </View>
+        <Text style={styles.title}>Plume Relais</Text>
+        <Text style={styles.subtitle}>Bon retour parmi nous</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Mot de passe"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Email</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="vous@exemple.com"
+              placeholderTextColor={colors.textMuted}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+          </View>
+        </View>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#FFF" />
-        ) : (
-          <Text style={styles.buttonText}>Se connecter</Text>
-        )}
-      </TouchableOpacity>
+        <View style={styles.fieldGroup}>
+          <Text style={styles.label}>Mot de passe</Text>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              placeholder="••••••••"
+              placeholderTextColor={colors.textMuted}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={18}
+                color={colors.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      <TouchableOpacity onPress={() => router.push('/register')}>
-        <Text style={styles.link}>Créer un compte</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+          activeOpacity={0.9}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors.textOnAccent} />
+          ) : (
+            <Text style={styles.buttonText}>Se connecter</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push('/register')} style={styles.linkWrap}>
+          <Text style={styles.link}>
+            Pas encore de compte ? <Text style={styles.linkStrong}>Créer un compte</Text>
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  container: { flex: 1, backgroundColor: colors.background },
+  scroll: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl },
+  logoWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
-    backgroundColor: '#F8F9FA',
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#6C63FF',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: '#FFF',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
-  button: {
-    backgroundColor: '#6C63FF',
-    padding: 15,
-    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
   },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  link: {
-    color: '#6C63FF',
+  title: { ...typography.h1, fontSize: 30, color: colors.textPrimary, textAlign: 'center' },
+  subtitle: {
+    fontSize: 15,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xxl,
   },
+  fieldGroup: { marginBottom: spacing.lg },
+  label: { ...typography.bodyStrong, color: colors.textPrimary, marginBottom: spacing.sm },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: 14,
+  },
+  inputIcon: { marginRight: 8 },
+  input: { flex: 1, paddingVertical: 14, fontSize: 15, color: colors.textPrimary },
+  button: {
+    backgroundColor: colors.accent,
+    padding: 16,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    marginTop: spacing.md,
+    ...shadow.button,
+  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
+  linkWrap: { marginTop: spacing.xl, alignItems: 'center' },
+  link: { color: colors.textSecondary, fontSize: 14 },
+  linkStrong: { color: colors.primary, fontWeight: '700' },
 });

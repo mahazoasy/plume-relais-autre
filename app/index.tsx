@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Redirect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../src/hooks/useAuth';
+import { colors, spacing, typography } from '../src/theme';
 
 export default function Index() {
   const { user, loading } = useAuth();
@@ -10,7 +12,11 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <View style={styles.logoWrap}>
+          <Ionicons name="book" size={36} color={colors.textOnPrimary} />
+        </View>
+        <Text style={styles.brand}>Plume Relais</Text>
+        <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: spacing.xl }} />
       </View>
     );
   }
@@ -29,6 +35,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: colors.background,
   },
+  logoWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  brand: { ...typography.h2, color: colors.textPrimary },
 });

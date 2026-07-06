@@ -16,6 +16,7 @@ import { votesService } from '../../src/services/supabase/votes';
 import { notificationsService } from '../../src/services/supabase/notifications';
 import { supabase } from '../../src/config/supabase';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 interface Contribution {
   id: string;
@@ -37,9 +38,7 @@ export default function Vote() {
 
   useEffect(() => {
     fetchData();
-    // S'abonner aux changements de votes en temps réel
     const subscription = votesService.subscribeToVotes(id as string, (payload) => {
-      // Rafraîchir les données quand un vote est ajouté ou modifié
       fetchData();
     });
     return () => {
@@ -78,31 +77,25 @@ export default function Vote() {
     }
   };
 
-  // Fonction pour clôturer le tour après le vote
   const closeTurn = async () => {
     if (!story) return;
 
     try {
-      // 1. Trouver la contribution gagnante (celle avec le plus de votes)
       const winner = await votesService.getWinningContribution(story.id, story.current_turn);
-      
+
       if (!winner) {
         console.log('Aucune contribution gagnante trouvée');
         return;
       }
 
-      // 2. Marquer comme canon
       await contributionsService.markAsCanon(winner.id);
 
-      // 3. Passer au tour suivant
       const newTurn = story.current_turn + 1;
       await storiesService.updateTurn(story.id, newTurn);
 
-      // 4. Si le tour max est atteint, marquer comme terminée
       if (newTurn > story.max_contributions) {
         await storiesService.updateStoryStatus(story.id, 'completed');
-        
-        // Notifier tous les participants que l'histoire est terminée
+
         const { data: participants } = await supabase
           .from('story_participations')
           .select('user_id')
@@ -136,7 +129,6 @@ export default function Vote() {
       return;
     }
 
-    // Vérifier que l'utilisateur ne vote pas pour sa propre proposition
     const selectedContribution = contributions.find(c => c.id === contributionId);
     if (selectedContribution?.author_id === user.id) {
       Alert.alert('Erreur', 'Vous ne pouvez pas voter pour votre propre proposition');
@@ -145,7 +137,6 @@ export default function Vote() {
 
     setVoting(true);
     try {
-      // 1. Enregistrer le vote
       await votesService.castVote({
         contribution_id: contributionId,
         user_id: user.id,
@@ -153,10 +144,8 @@ export default function Vote() {
         turn_number: story.current_turn,
       });
 
-      // 2. Mettre à jour l'état local
       setUserVote(contributionId);
 
-      // 3. Notification à l'utilisateur
       await notificationsService.createNotification({
         user_id: user.id,
         type: 'vote_open',
@@ -167,14 +156,10 @@ export default function Vote() {
 
       Alert.alert('Succès', 'Votre vote a été enregistré !');
 
-      // 4. Rafraîchir les données
       await fetchData();
 
-      // 5. Clôturer automatiquement le tour après le vote
-      // (on attend un peu pour que les données soient à jour)
       setTimeout(async () => {
         await closeTurn();
-        // Rediriger vers le détail de l'histoire pour voir la mise à jour
         router.replace(`/story/${id}`);
       }, 500);
     } catch (error: any) {
@@ -187,7 +172,7 @@ export default function Vote() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -195,21 +180,24 @@ export default function Vote() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Voter</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerBtn} />
       </View>
 
-      <ScrollView style={styles.content}>
-        <Text style={styles.title}>🗳️ Choisissez votre contribution préférée</Text>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.title}>Choisissez votre contribution préférée</Text>
         <Text style={styles.subtitle}>
           {userVote ? 'Vous avez déjà voté' : 'Votez pour la suite de l\'histoire'}
         </Text>
 
         {contributions.length === 0 ? (
           <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="hourglass-outline" size={26} color={colors.primaryLight} />
+            </View>
             <Text style={styles.emptyText}>Aucune proposition en attente</Text>
           </View>
         ) : (
@@ -228,17 +216,31 @@ export default function Vote() {
                 ]}
                 onPress={() => !userVote && setSelectedId(contribution.id)}
                 disabled={!!userVote}
+                activeOpacity={0.85}
               >
                 <View style={styles.cardHeader}>
-                  <Text style={styles.author}>
-                    {contribution.author?.username || 'Anonyme'}
-                  </Text>
+                  <View style={styles.authorRow}>
+                    <View style={styles.authorAvatar}>
+                      <Text style={styles.authorInitial}>
+                        {(contribution.author?.username || 'A').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.author}>
+                      {contribution.author?.username || 'Anonyme'}
+                    </Text>
+                  </View>
                   <View style={styles.voteBadge}>
-                    <Ionicons name="thumbs-up" size={14} color="#6C63FF" />
+                    <Ionicons name="thumbs-up" size={13} color={colors.primary} />
                     <Text style={styles.voteCount}>{voteCount}</Text>
                   </View>
                 </View>
                 <Text style={styles.contentText}>{contribution.content}</Text>
+                {isVoted && (
+                  <View style={styles.votedTag}>
+                    <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                    <Text style={styles.votedTagText}>Votre vote</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             );
           })
@@ -252,9 +254,10 @@ export default function Vote() {
             ]}
             onPress={() => selectedId && handleVote(selectedId)}
             disabled={!selectedId || voting}
+            activeOpacity={0.9}
           >
             {voting ? (
-              <ActivityIndicator color="#FFF" />
+              <ActivityIndicator color={colors.textOnAccent} />
             ) : (
               <Text style={styles.voteButtonText}>Voter pour cette contribution</Text>
             )}
@@ -263,7 +266,7 @@ export default function Vote() {
 
         {userVote && (
           <View style={styles.votedInfo}>
-            <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            <Ionicons name="checkmark-circle" size={22} color={colors.success} />
             <Text style={styles.votedInfoText}>
               Vous avez voté ! Le tour sera clôturé automatiquement.
             </Text>
@@ -275,76 +278,99 @@ export default function Vote() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  content: { padding: 16 },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  subtitle: { fontSize: 14, color: '#666', marginTop: 4, marginBottom: 16 },
+  headerBtn: { width: 32 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  content: { paddingHorizontal: spacing.lg },
+  title: { ...typography.h2, color: colors.textPrimary },
+  subtitle: { fontSize: 13.5, color: colors.textSecondary, marginTop: 4, marginBottom: spacing.lg },
   card: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
     borderWidth: 2,
     borderColor: 'transparent',
+    ...shadow.card,
   },
-  cardSelected: { borderColor: '#6C63FF' },
-  cardVoted: { borderColor: '#4CAF50', backgroundColor: '#F0FFF0' },
+  cardSelected: { borderColor: colors.primary },
+  cardVoted: { borderColor: colors.success, backgroundColor: colors.successBg },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
-  author: { fontSize: 14, fontWeight: '600', color: '#6C63FF' },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  authorAvatar: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  authorInitial: { color: '#FFF', fontSize: 11.5, fontWeight: '700' },
+  author: { fontSize: 13.5, fontWeight: '700', color: colors.textPrimary },
   voteBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F0F0FF',
-    paddingHorizontal: 8,
+    backgroundColor: colors.accentSoft,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: radius.pill,
   },
-  voteCount: { fontSize: 12, color: '#6C63FF', fontWeight: '600' },
-  contentText: { fontSize: 16, color: '#333' },
-  emptyContainer: { paddingVertical: 40, alignItems: 'center' },
-  emptyText: { fontSize: 16, color: '#999' },
-  voteButton: {
-    backgroundColor: '#6C63FF',
-    padding: 16,
-    borderRadius: 12,
+  voteCount: { fontSize: 12, color: colors.primary, fontWeight: '700' },
+  contentText: { fontSize: 15.5, color: colors.textPrimary, lineHeight: 22 },
+  votedTag: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: spacing.sm },
+  votedTagText: { fontSize: 12, color: colors.success, fontWeight: '700' },
+  emptyContainer: { paddingVertical: 60, alignItems: 'center' },
+  emptyIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.accentSoft,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 40,
+    marginBottom: spacing.md,
+  },
+  emptyText: { fontSize: 15, color: colors.textSecondary },
+  voteButton: {
+    backgroundColor: colors.accent,
+    padding: 16,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.xxxl,
+    ...shadow.button,
   },
   voteButtonDisabled: { opacity: 0.5 },
-  voteButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  voteButtonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
   votedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FFF0',
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 16,
-    marginBottom: 40,
-    gap: 8,
+    backgroundColor: colors.successBg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    marginTop: spacing.md,
+    marginBottom: spacing.xxxl,
+    gap: spacing.sm,
   },
   votedInfoText: {
-    fontSize: 14,
-    color: '#4CAF50',
-    fontWeight: '500',
+    fontSize: 13.5,
+    color: colors.success,
+    fontWeight: '600',
     flex: 1,
   },
 });
