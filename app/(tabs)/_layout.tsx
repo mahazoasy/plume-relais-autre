@@ -1,22 +1,31 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
+import { colors } from '../../src/theme';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#6C63FF',
-        tabBarInactiveTintColor: '#999',
-        headerStyle: { backgroundColor: '#6C63FF' },
-        headerTintColor: '#FFF',
-        headerTitleStyle: { fontWeight: 'bold' },
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: { fontSize: 11.5, fontWeight: '600', marginTop: -2 },
+        headerStyle: { backgroundColor: colors.primary },
+        headerTintColor: colors.textOnPrimary,
+        headerTitleStyle: { fontWeight: '700', fontSize: 18 },
+        headerShadowVisible: false,
         tabBarStyle: {
-          backgroundColor: '#FFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E0E0E0',
-          height: 60,
-          paddingBottom: 5,
+          backgroundColor: colors.surface,
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 84 : 64,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 26 : 8,
+          shadowColor: '#1A1424',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 8,
         },
       }}
     >
@@ -24,8 +33,9 @@ export default function TabLayout() {
         name="home"
         options={{
           title: 'Accueil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -33,8 +43,9 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: 'Explorer',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'compass' : 'compass-outline'} size={22} color={color} />
           ),
         }}
       />
@@ -42,8 +53,9 @@ export default function TabLayout() {
         name="create"
         options={{
           title: 'Créer',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'add-circle' : 'add-circle-outline'} size={24} color={color} />
           ),
         }}
       />
@@ -51,8 +63,9 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          headerShown: false,
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'person' : 'person-outline'} size={22} color={color} />
           ),
         }}
       />

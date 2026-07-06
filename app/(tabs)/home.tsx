@@ -7,25 +7,31 @@ import {
   StyleSheet,
   RefreshControl,
   ActivityIndicator,
-  Image, 
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
 import { storiesService } from '../../src/services/supabase/stories';
-import { TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; 
+import { Ionicons } from '@expo/vector-icons';
 import { getStatusLabel, getStatusColor, truncateText } from '../../src/utils/helpers';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 interface Story {
   id: string;
   title: string;
   description?: string;
-  cover_image?: string; 
+  cover_image?: string;
   status: string;
   current_turn: number;
   created_at: string;
   participants?: { count: number };
 }
+
+const TABS: { key: 'my' | 'open' | 'completed'; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'my', label: 'Mes histoires', icon: 'book-outline' },
+  { key: 'open', label: 'À rejoindre', icon: 'people-outline' },
+  { key: 'completed', label: 'Terminées', icon: 'checkmark-done-outline' },
+];
 
 export default function Home() {
   const { user } = useAuth();
@@ -73,42 +79,51 @@ export default function Home() {
     router.push(`/story/${storyId}`);
   };
 
-  const renderStory = ({ item }: { item: Story }) => (
-    <TouchableOpacity style={styles.card} onPress={() => handleStoryPress(item.id)}>
-      {/* MINIATURE DE L'IMAGE DE COUVERTURE */}
-      {item.cover_image && (
-        <Image
-          source={{ uri: item.cover_image }}
-          style={styles.coverThumbnail}
-          resizeMode="cover"
-        />
-      )}
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        {item.description && (
-          <Text style={styles.cardDesc} numberOfLines={2}>
-            {truncateText(item.description, 80)}
-          </Text>
+  const renderStory = ({ item }: { item: Story }) => {
+    const statusColor = getStatusColor(item.status);
+    return (
+      <TouchableOpacity style={styles.card} onPress={() => handleStoryPress(item.id)} activeOpacity={0.85}>
+        {item.cover_image ? (
+          <Image source={{ uri: item.cover_image }} style={styles.coverThumbnail} resizeMode="cover" />
+        ) : (
+          <View style={[styles.coverThumbnail, styles.coverPlaceholder]}>
+            <Ionicons name="book-outline" size={26} color={colors.textMuted} />
+          </View>
         )}
-        <View style={styles.cardFooter}>
-          <Text style={[styles.cardStatus, { color: getStatusColor(item.status) }]}>
-            {getStatusLabel(item.status)}
-          </Text>
-          <View style={styles.cardRight}>
-            <Text style={styles.cardTurn}>Tour {item.current_turn}</Text>
-            {item.participants && (
-              <Text style={styles.cardParticipants}>👤 {item.participants.count}</Text>
-            )}
+        <View style={styles.cardContent}>
+          <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
+          {item.description ? (
+            <Text style={styles.cardDesc} numberOfLines={2}>
+              {truncateText(item.description, 80)}
+            </Text>
+          ) : (
+            <Text style={styles.cardDescPlaceholder} numberOfLines={2}>Aucune description</Text>
+          )}
+          <View style={styles.cardFooter}>
+            <View style={[styles.statusPill, { backgroundColor: `${statusColor}1A` }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.cardStatus, { color: statusColor }]}>{getStatusLabel(item.status)}</Text>
+            </View>
+            <View style={styles.cardRight}>
+              <Ionicons name="repeat-outline" size={13} color={colors.textMuted} />
+              <Text style={styles.cardTurn}>Tour {item.current_turn}</Text>
+              {item.participants && (
+                <>
+                  <Ionicons name="person-outline" size={13} color={colors.textMuted} style={{ marginLeft: 8 }} />
+                  <Text style={styles.cardParticipants}>{item.participants.count}</Text>
+                </>
+              )}
+            </View>
           </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -116,28 +131,31 @@ export default function Home() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>📖 Plume Relais</Text>
-        <TouchableOpacity style={styles.createBtn} onPress={handleCreateStory}>
-          <Text style={styles.createBtnText}>+ Nouvelle</Text>
+        <View>
+          <Text style={styles.eyebrow}>PLUME RELAIS</Text>
+          <Text style={styles.title}>Vos histoires</Text>
+        </View>
+        <TouchableOpacity style={styles.createBtn} onPress={handleCreateStory} activeOpacity={0.85}>
+          <Ionicons name="add" size={18} color={colors.textOnAccent} />
+          <Text style={styles.createBtnText}>Nouvelle</Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.tabs}>
-        {[
-          { key: 'my', label: 'Mes histoires' },
-          { key: 'open', label: 'À rejoindre' },
-          { key: 'completed', label: 'Terminées' },
-        ].map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key as any)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, active && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name={tab.icon} size={15} color={active ? colors.textOnPrimary : colors.textSecondary} />
+              <Text style={[styles.tabText, active && styles.tabTextActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
@@ -145,9 +163,12 @@ export default function Home() {
         renderItem={renderStory}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={() => (
           <View style={styles.empty}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="book-outline" size={30} color={colors.primaryLight} />
+            </View>
             <Text style={styles.emptyText}>
               {activeTab === 'my'
                 ? 'Vous ne participez à aucune histoire'
@@ -156,7 +177,7 @@ export default function Home() {
                 : 'Aucune histoire terminée'}
             </Text>
             {activeTab === 'my' && (
-              <TouchableOpacity style={styles.emptyBtn} onPress={handleCreateStory}>
+              <TouchableOpacity style={styles.emptyBtn} onPress={handleCreateStory} activeOpacity={0.85}>
                 <Text style={styles.emptyBtnText}>Créer une histoire</Text>
               </TouchableOpacity>
             )}
@@ -168,84 +189,107 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: colors.background },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    alignItems: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
   },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#6C63FF' },
+  eyebrow: { ...typography.label, color: colors.accentDark, marginBottom: 2 },
+  title: { ...typography.h1, color: colors.textPrimary },
   createBtn: {
-    backgroundColor: '#6C63FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    ...shadow.button,
   },
-  createBtnText: { color: '#FFF', fontWeight: '600' },
+  createBtnText: { color: colors.textOnAccent, fontWeight: '700', fontSize: 13.5 },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
-    padding: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    gap: 8,
+    marginBottom: spacing.md,
   },
   tab: {
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    marginRight: 8,
-    borderRadius: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  tabActive: { backgroundColor: '#6C63FF' },
-  tabText: { color: '#666', fontSize: 14 },
-  tabTextActive: { color: '#FFF', fontWeight: '600' },
-  list: { padding: 16, flexGrow: 1 },
+  tabActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  tabText: { color: colors.textSecondary, fontSize: 12.5, fontWeight: '600' },
+  tabTextActive: { color: colors.textOnPrimary },
+  list: { padding: spacing.lg, paddingTop: 0, flexGrow: 1 },
   card: {
-    flexDirection: 'row', 
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    marginBottom: spacing.md,
+    ...shadow.card,
   },
   coverThumbnail: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 12,
-    backgroundColor: '#F0F0F0',
+    width: 76,
+    height: 76,
+    borderRadius: radius.md,
+    marginRight: spacing.md,
+    backgroundColor: colors.surfaceAlt,
   },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  cardDesc: { fontSize: 14, color: '#666', marginTop: 4 },
+  coverPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+  cardContent: { flex: 1, justifyContent: 'space-between' },
+  cardTitle: { ...typography.h3, color: colors.textPrimary },
+  cardDesc: { ...typography.body, fontSize: 13.5, color: colors.textSecondary, marginTop: 3 },
+  cardDescPlaceholder: { fontSize: 13.5, color: colors.textMuted, fontStyle: 'italic', marginTop: 3 },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    alignItems: 'center',
+    marginTop: spacing.sm,
   },
-  cardStatus: { fontSize: 12, fontWeight: '600' },
-  cardRight: { flexDirection: 'row', gap: 12 },
-  cardTurn: { fontSize: 12, color: '#999' },
-  cardParticipants: { fontSize: 12, color: '#999' },
-  empty: { paddingVertical: 60, alignItems: 'center' },
-  emptyText: { fontSize: 16, color: '#999', textAlign: 'center' },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  cardStatus: { fontSize: 11.5, fontWeight: '700' },
+  cardRight: { flexDirection: 'row', alignItems: 'center' },
+  cardTurn: { fontSize: 11.5, color: colors.textMuted, marginLeft: 3 },
+  cardParticipants: { fontSize: 11.5, color: colors.textMuted, marginLeft: 3 },
+  empty: { paddingVertical: 72, alignItems: 'center' },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.accentSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyText: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 },
   emptyBtn: {
-    marginTop: 16,
-    backgroundColor: '#6C63FF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    marginTop: spacing.lg,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: radius.pill,
   },
-  emptyBtnText: { color: '#FFF', fontWeight: '600' },
+  emptyBtnText: { color: colors.textOnPrimary, fontWeight: '700', fontSize: 13.5 },
 });

@@ -14,6 +14,7 @@ import { useAuth } from '../../src/hooks/useAuth';
 import { supabase } from '../../src/config/supabase';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 export default function EditProfile() {
   const { user } = useAuth();
@@ -61,7 +62,6 @@ export default function EditProfile() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
-      // asset.uri peut être une data URI sur web, on le gère
       await uploadAvatar(asset);
     }
   };
@@ -69,47 +69,30 @@ export default function EditProfile() {
   const uploadAvatar = async (asset: ImagePicker.ImagePickerAsset) => {
     setUploading(true);
     try {
-      // 1. Déterminer l'extension à partir du mimeType ou du fileName
-      let fileExt = 'jpg'; // fallback
+      let fileExt = 'jpg';
       if (asset.mimeType) {
-        // Ex: "image/jpeg" -> "jpeg"
         fileExt = asset.mimeType.split('/')[1] || 'jpg';
       } else if (asset.fileName) {
         const parts = asset.fileName.split('.');
         if (parts.length > 1) fileExt = parts.pop() || 'jpg';
-      } else {
-        // Si aucun, on peut tenter de l'extraire de l'URI 
-        // On va se fier au mimeType par défaut.
       }
 
-      // 2. Récupérer le blob
-      let blob: Blob;
-      if (asset.uri.startsWith('data:')) {
-        // C'est une data URI, on la convertit en Blob
-        const response = await fetch(asset.uri);
-        blob = await response.blob();
-      } else {
-        const response = await fetch(asset.uri);
-        blob = await response.blob();
-      }
+      const response = await fetch(asset.uri);
+      const blob = await response.blob();
 
-      // 3. Nom du fichier
       const fileName = `${user?.id}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // 4. Upload vers Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, blob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      // 5. Récupérer l'URL publique
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // 6. Mettre à jour la table users
       const { error: updateError } = await supabase
         .from('users')
         .update({ avatar_url: publicUrl })
@@ -156,16 +139,16 @@ export default function EditProfile() {
 
   const avatarSource = avatarUrl
     ? { uri: avatarUrl }
-    : { uri: `https://ui-avatars.com/api/?name=${username || 'U'}&background=6C63FF&color=fff&size=100` };
+    : { uri: `https://ui-avatars.com/api/?name=${username || 'U'}&background=3B3358&color=fff&size=100` };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#333" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+          <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Modifier le profil</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.headerBtn} />
       </View>
 
       <View style={styles.content}>
@@ -173,6 +156,7 @@ export default function EditProfile() {
           style={styles.avatarContainer}
           onPress={handlePickImage}
           disabled={uploading}
+          activeOpacity={0.85}
         >
           <Image source={avatarSource} style={styles.avatar} />
           {uploading ? (
@@ -181,7 +165,7 @@ export default function EditProfile() {
             </View>
           ) : (
             <View style={styles.editIconContainer}>
-              <Ionicons name="camera" size={16} color="#FFF" />
+              <Ionicons name="camera" size={15} color="#FFF" />
             </View>
           )}
           <Text style={styles.changeAvatarText}>
@@ -196,6 +180,7 @@ export default function EditProfile() {
             value={username}
             onChangeText={setUsername}
             placeholder="Votre pseudo"
+            placeholderTextColor={colors.textMuted}
           />
         </View>
 
@@ -203,9 +188,10 @@ export default function EditProfile() {
           style={[styles.saveButton, (saving || uploading) && styles.buttonDisabled]}
           onPress={handleSave}
           disabled={saving || uploading}
+          activeOpacity={0.9}
         >
           {saving ? (
-            <ActivityIndicator color="#FFF" />
+            <ActivityIndicator color={colors.textOnAccent} />
           ) : (
             <Text style={styles.saveButtonText}>Enregistrer</Text>
           )}
@@ -215,31 +201,26 @@ export default function EditProfile() {
   );
 }
 
-// Styles inchangés
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333', flex: 1, marginLeft: 12 },
-  content: { padding: 20, alignItems: 'center' },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 8,
-    alignItems: 'center',
-  },
+  headerBtn: { width: 32 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  content: { padding: spacing.xl, alignItems: 'center' },
+  avatarContainer: { position: 'relative', marginBottom: spacing.sm, alignItems: 'center' },
   avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
     borderWidth: 3,
-    borderColor: '#6C63FF',
+    borderColor: colors.accent,
   },
   uploadOverlay: {
     position: 'absolute',
@@ -247,8 +228,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 60,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 58,
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -256,39 +237,36 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#6C63FF',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    backgroundColor: colors.primary,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#FFF',
+    borderColor: colors.background,
   },
-  changeAvatarText: {
-    fontSize: 12,
-    color: '#6C63FF',
-    marginTop: 8,
-  },
-  inputGroup: { width: '100%', marginTop: 16 },
-  label: { fontSize: 16, fontWeight: '600', color: '#333', marginBottom: 8 },
+  changeAvatarText: { fontSize: 12.5, color: colors.primary, fontWeight: '600', marginTop: spacing.sm },
+  inputGroup: { width: '100%', marginTop: spacing.xl },
+  label: { ...typography.bodyStrong, color: colors.textPrimary, marginBottom: spacing.sm },
   input: {
-    backgroundColor: '#FFF',
+    backgroundColor: colors.surface,
     padding: 14,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    fontSize: 16,
+    borderColor: colors.border,
+    fontSize: 15,
+    color: colors.textPrimary,
   },
   saveButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    borderRadius: 10,
+    backgroundColor: colors.accent,
+    paddingVertical: 15,
+    borderRadius: radius.pill,
     alignItems: 'center',
     width: '100%',
-    marginTop: 24,
+    marginTop: spacing.xxl,
+    ...shadow.button,
   },
   buttonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  saveButtonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
 });

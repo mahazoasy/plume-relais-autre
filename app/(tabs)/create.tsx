@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Switch,
   Image,
-  Modal, 
+  Modal,
   Platform,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -25,6 +25,7 @@ import {
   validateContent,
   validateNumber,
 } from '../../src/utils/validators';
+import { colors, spacing, radius, shadow, typography } from '../../src/theme';
 
 export default function Create() {
   const { user } = useAuth();
@@ -39,7 +40,6 @@ export default function Create() {
   const [blindMode, setBlindMode] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<any>(null);
-  // État pour le Modal de succès
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const pickCoverImage = async () => {
@@ -126,7 +126,6 @@ export default function Create() {
 
     setLoading(true);
     try {
-      // 1. Créer l'histoire
       const storyData = {
         title: title.trim(),
         description: description.trim(),
@@ -140,7 +139,6 @@ export default function Create() {
       };
       const story = await storiesService.createStory(storyData);
 
-      // 2. Uploader l'image de couverture
       if (coverFile) {
         const coverUrl = await uploadCoverImage(story.id);
         if (coverUrl) {
@@ -151,7 +149,6 @@ export default function Create() {
         }
       }
 
-      // 3. Ajouter la contribution d'ouverture (canon)
       await contributionsService.addContribution({
         story_id: story.id,
         author_id: user.id,
@@ -160,10 +157,8 @@ export default function Create() {
         is_canon: true,
       });
 
-      // 4. Ajouter le créateur comme participant
       await storiesService.joinStory(story.id, user.id);
 
-      // Afficher le Modal personnalisé au lieu d'Alert.alert
       setShowSuccessModal(true);
     } catch (error: any) {
       Alert.alert('Erreur', error.message || 'Une erreur est survenue');
@@ -174,114 +169,172 @@ export default function Create() {
 
   const handleCloseModal = () => {
     setShowSuccessModal(false);
-    // Rediriger vers l'accueil après fermeture du Modal
     router.replace('/(tabs)/home');
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#333" />
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <Ionicons name="arrow-back" size={22} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Créer une histoire</Text>
-          <View style={{ width: 24 }} />
+          <View style={styles.headerBtn} />
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Titre *</Text>
-          <TextInput style={styles.input} placeholder="Donnez un titre" value={title} onChangeText={setTitle} />
-
-          <Text style={styles.label}>Description</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Décrivez brièvement"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            numberOfLines={3}
-          />
-
-          {/* Section image de couverture */}
-          <Text style={styles.label}>Image de couverture</Text>
-          <TouchableOpacity style={styles.coverPicker} onPress={pickCoverImage}>
-            {coverImage ? (
-              <Image source={{ uri: coverImage }} style={styles.coverPreview} />
-            ) : (
-              <>
-                <Ionicons name="image-outline" size={40} color="#999" />
-                <Text style={styles.coverPlaceholderText}>Choisir une image</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          {uploadingCover && <ActivityIndicator size="small" color="#6C63FF" style={styles.coverLoading} />}
-
-          <Text style={styles.label}>Paragraphe d'ouverture *</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Commencez votre histoire..."
-            value={opening}
-            onChangeText={setOpening}
-            multiline
-            numberOfLines={4}
-          />
-
-          <Text style={styles.label}>Nombre max de contributions</Text>
-          <TextInput style={styles.input} value={maxContrib} onChangeText={setMaxContrib} keyboardType="numeric" />
-
-          <Text style={styles.label}>Durée d'un tour (minutes)</Text>
-          <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" />
-
-          <Text style={styles.label}>Visibilité</Text>
-          <View style={styles.visibilityContainer}>
-            <TouchableOpacity
-              style={[styles.visibilityOption, visibility === 'public' && styles.visibilityActive]}
-              onPress={() => setVisibility('public')}
-            >
-              <Text style={[styles.visibilityText, visibility === 'public' && styles.visibilityTextActive]}>
-                🌍 Public
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.visibilityOption, visibility === 'private' && styles.visibilityActive]}
-              onPress={() => setVisibility('private')}
-            >
-              <Text style={[styles.visibilityText, visibility === 'private' && styles.visibilityTextActive]}>
-                🔒 Privé
-              </Text>
-            </TouchableOpacity>
+          <Text style={styles.sectionLabel}>DÉTAILS</Text>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Titre *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Donnez un titre à votre histoire"
+              placeholderTextColor={colors.textMuted}
+              value={title}
+              onChangeText={setTitle}
+            />
           </View>
 
-          <View style={styles.switchContainer}>
-            <Text style={styles.label}>Mode à l'aveugle</Text>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Description</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              placeholder="Décrivez brièvement l'univers de l'histoire"
+              placeholderTextColor={colors.textMuted}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              numberOfLines={3}
+            />
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Image de couverture</Text>
+            <TouchableOpacity style={styles.coverPicker} onPress={pickCoverImage} activeOpacity={0.85}>
+              {coverImage ? (
+                <>
+                  <Image source={{ uri: coverImage }} style={styles.coverPreview} />
+                  <View style={styles.coverEditBadge}>
+                    <Ionicons name="camera" size={14} color={colors.textOnPrimary} />
+                  </View>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="image-outline" size={32} color={colors.textMuted} />
+                  <Text style={styles.coverPlaceholderText}>Choisir une image</Text>
+                </>
+              )}
+            </TouchableOpacity>
+            {uploadingCover && <ActivityIndicator size="small" color={colors.primary} style={styles.coverLoading} />}
+          </View>
+
+          <Text style={styles.sectionLabel}>PARAGRAPHE D'OUVERTURE</Text>
+          <View style={styles.fieldGroup}>
+            <TextInput
+              style={[styles.input, styles.textAreaLarge]}
+              placeholder="Commencez votre histoire..."
+              placeholderTextColor={colors.textMuted}
+              value={opening}
+              onChangeText={setOpening}
+              multiline
+              numberOfLines={5}
+            />
+          </View>
+
+          <Text style={styles.sectionLabel}>PARAMÈTRES</Text>
+          <View style={styles.settingsRow}>
+            <View style={[styles.fieldGroup, styles.settingsHalf]}>
+              <Text style={styles.label}>Contributions max.</Text>
+              <TextInput
+                style={styles.input}
+                value={maxContrib}
+                onChangeText={setMaxContrib}
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={[styles.fieldGroup, styles.settingsHalf]}>
+              <Text style={styles.label}>Durée d'un tour (min)</Text>
+              <TextInput
+                style={styles.input}
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>Visibilité</Text>
+            <View style={styles.visibilityContainer}>
+              <TouchableOpacity
+                style={[styles.visibilityOption, visibility === 'public' && styles.visibilityActive]}
+                onPress={() => setVisibility('public')}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name="earth-outline"
+                  size={16}
+                  color={visibility === 'public' ? colors.textOnPrimary : colors.textSecondary}
+                />
+                <Text style={[styles.visibilityText, visibility === 'public' && styles.visibilityTextActive]}>
+                  Public
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.visibilityOption, visibility === 'private' && styles.visibilityActive]}
+                onPress={() => setVisibility('private')}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name="lock-closed-outline"
+                  size={16}
+                  color={visibility === 'private' ? colors.textOnPrimary : colors.textSecondary}
+                />
+                <Text style={[styles.visibilityText, visibility === 'private' && styles.visibilityTextActive]}>
+                  Privé
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.switchCard}>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>{blindMode ? 'Activé' : 'Désactivé'}</Text>
+              <View style={{ flex: 1, paddingRight: spacing.md }}>
+                <Text style={styles.label}>Mode à l'aveugle</Text>
+                <Text style={styles.helperText}>
+                  {blindMode
+                    ? 'Les participants ne verront que les derniers paragraphes'
+                    : 'Les participants verront toute l\'histoire'}
+                </Text>
+              </View>
               <Switch
                 value={blindMode}
                 onValueChange={setBlindMode}
-                trackColor={{ false: '#E0E0E0', true: '#6C63FF' }}
-                thumbColor="#FFF"
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={blindMode ? colors.primary : '#FFF'}
               />
             </View>
-            <Text style={styles.helperText}>
-              {blindMode
-                ? 'Les participants ne verront que les derniers paragraphes'
-                : 'Les participants verront toute l\'histoire'}
-            </Text>
           </View>
 
           <TouchableOpacity
             style={[styles.createButton, (loading || uploadingCover) && styles.createButtonDisabled]}
             onPress={handleCreate}
             disabled={loading || uploadingCover}
+            activeOpacity={0.9}
           >
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.createButtonText}>Créer l'histoire</Text>}
+            {loading ? (
+              <ActivityIndicator color={colors.textOnAccent} />
+            ) : (
+              <>
+                <Ionicons name="sparkles-outline" size={18} color={colors.textOnAccent} />
+                <Text style={styles.createButtonText}>Créer l'histoire</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* MODAL PERSONNALISÉ DE SUCCÈS */}
       <Modal
         visible={showSuccessModal}
         transparent={true}
@@ -290,12 +343,14 @@ export default function Create() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Ionicons name="checkmark-circle" size={60} color="#4CAF50" />
-            <Text style={styles.modalTitle}>Succès</Text>
+            <View style={styles.modalIconWrap}>
+              <Ionicons name="checkmark-circle" size={48} color={colors.success} />
+            </View>
+            <Text style={styles.modalTitle}>Histoire créée !</Text>
             <Text style={styles.modalMessage}>
-              Votre histoire "{title}" a été créée avec succès !
+              Votre histoire « {title} » a été publiée avec succès.
             </Text>
-            <TouchableOpacity style={styles.modalButton} onPress={handleCloseModal}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleCloseModal} activeOpacity={0.9}>
               <Text style={styles.modalButtonText}>Voir mes histoires</Text>
             </TouchableOpacity>
           </View>
@@ -306,175 +361,142 @@ export default function Create() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8F9FA',
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  scrollView: { flex: 1 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 56,
+    paddingBottom: spacing.lg,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+  headerBtn: { width: 32 },
+  headerTitle: { ...typography.h2, color: colors.textPrimary },
+  form: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxxl },
+  sectionLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
   },
-  form: {
-    padding: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
-  },
+  fieldGroup: { marginBottom: spacing.lg },
+  settingsRow: { flexDirection: 'row', gap: spacing.md },
+  settingsHalf: { flex: 1 },
+  label: { ...typography.bodyStrong, color: colors.textPrimary, marginBottom: spacing.sm },
   input: {
-    backgroundColor: '#FFF',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    padding: 14,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    fontSize: 16,
+    borderColor: colors.border,
+    fontSize: 15,
+    color: colors.textPrimary,
   },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  visibilityContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  textArea: { minHeight: 84, textAlignVertical: 'top' },
+  textAreaLarge: { minHeight: 130, textAlignVertical: 'top' },
+  visibilityContainer: { flexDirection: 'row', gap: spacing.sm },
   visibilityOption: {
     flex: 1,
-    padding: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    alignItems: 'center',
-  },
-  visibilityActive: {
-    backgroundColor: '#6C63FF',
-    borderColor: '#6C63FF',
-  },
-  visibilityText: {
-    color: '#666',
-  },
-  visibilityTextActive: {
-    color: '#FFF',
-  },
-  switchContainer: {
-    marginTop: 16,
-  },
-  switchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    gap: 6,
     padding: 12,
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: colors.border,
   },
-  switchLabel: {
-    color: '#666',
+  visibilityActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  visibilityText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
+  visibilityTextActive: { color: colors.textOnPrimary },
+  switchCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.xl,
   },
-  helperText: {
-    fontSize: 12,
-    color: '#999',
-    marginTop: 8,
-  },
+  switchRow: { flexDirection: 'row', alignItems: 'center' },
+  helperText: { fontSize: 12.5, color: colors.textSecondary, marginTop: 4, lineHeight: 17 },
   createButton: {
-    backgroundColor: '#6C63FF',
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: colors.accent,
     padding: 16,
-    borderRadius: 10,
+    borderRadius: radius.pill,
     alignItems: 'center',
-    marginTop: 32,
-    marginBottom: 40,
+    justifyContent: 'center',
+    ...shadow.button,
   },
-  createButtonDisabled: {
-    opacity: 0.7,
-  },
-  createButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  createButtonDisabled: { opacity: 0.6 },
+  createButtonText: { color: colors.textOnAccent, fontSize: 16, fontWeight: '700' },
   coverPicker: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
     height: 160,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderWidth: 1.5,
+    borderColor: colors.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
-    marginBottom: 8,
   },
-  coverPreview: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
+  coverPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
+  coverEditBadge: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    backgroundColor: colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  coverPlaceholderText: {
-    color: '#999',
-    marginTop: 8,
-    fontSize: 14,
-  },
-  coverLoading: {
-    marginTop: 8,
-  },
-  // Styles du Modal
+  coverPlaceholderText: { color: colors.textMuted, marginTop: 8, fontSize: 13.5, fontWeight: '600' },
+  coverLoading: { marginTop: spacing.sm },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    width: '80%',
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xxl,
+    width: '82%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    ...shadow.raised,
   },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 12,
+  modalIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.successBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
   },
+  modalTitle: { ...typography.h2, color: colors.textPrimary, marginTop: spacing.sm },
   modalMessage: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14.5,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginTop: 8,
-    marginBottom: 20,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xl,
+    lineHeight: 20,
   },
   modalButton: {
-    backgroundColor: '#6C63FF',
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    borderRadius: 10,
+    backgroundColor: colors.primary,
+    paddingVertical: 13,
+    paddingHorizontal: 32,
+    borderRadius: radius.pill,
+    width: '100%',
+    alignItems: 'center',
   },
-  modalButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  modalButtonText: { color: colors.textOnPrimary, fontSize: 15, fontWeight: '700' },
 });
