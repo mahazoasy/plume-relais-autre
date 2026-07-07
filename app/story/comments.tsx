@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image, 
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -75,9 +76,13 @@ export default function Comments() {
   const renderItem = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.avatarWrap}>
-        <Text style={styles.avatarInitial}>
-          {(item.user?.username || 'A').charAt(0).toUpperCase()}
-        </Text>
+        {item.user?.avatar_url ? (
+          <Image source={{ uri: item.user.avatar_url }} style={styles.avatarImage} />
+        ) : (
+          <Text style={styles.avatarInitial}>
+            {(item.user?.username || 'A').charAt(0).toUpperCase()}
+          </Text>
+        )}
       </View>
       <View style={styles.bubble}>
         <View style={styles.cardHeader}>
@@ -170,6 +175,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden', // pour que l'image respecte le borderRadius
+  },
+  avatarImage: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
   },
   avatarInitial: { color: '#FFF', fontSize: 12.5, fontWeight: '700' },
   bubble: {
