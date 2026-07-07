@@ -105,7 +105,7 @@ export default function Vote() {
           await notificationsService.createNotification({
             user_id: p.user_id,
             type: 'story_completed',
-            title: '🎉 Histoire terminée !',
+            title: 'Histoire terminée !',
             message: `"${story.title}" est maintenant terminée. Bravo à tous !`,
             story_id: story.id,
           });

@@ -26,12 +26,12 @@ export default function RootLayout() {
 
     // Écoute des notifications reçues pendant que l'app est au premier plan
     notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log('📩 Notification reçue:', notification);
+      console.log('Notification reçue:', notification);
     });
 
     // Écoute quand l'utilisateur interagit avec une notification
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log('👆 Notification cliquée:', response);
+      console.log(' Notification cliquée:', response);
       const storyId = response.notification.request.content.data?.storyId;
       if (storyId) {
         router.push(`/story/${storyId}`);
