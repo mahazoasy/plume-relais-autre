@@ -319,11 +319,15 @@ export default function StoryDetail() {
             <View key={contribution.id} style={styles.contributionCard}>
               <View style={styles.contributionHeader}>
                 <View style={styles.authorRow}>
-                  <View style={styles.authorAvatar}>
-                    <Text style={styles.authorInitial}>
-                      {(contribution.author?.username || 'A').charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
+                  {contribution.author?.avatar_url ? (
+                    <Image source={{ uri: contribution.author.avatar_url }} style={styles.authorAvatarImage} />
+                  ) : (
+                    <View style={styles.authorAvatar}>
+                      <Text style={styles.authorInitial}>
+                        {(contribution.author?.username || 'A').charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
                   <Text style={styles.contributionAuthor}>
                     {contribution.author?.username || 'Anonyme'}
                   </Text>
@@ -354,11 +358,15 @@ export default function StoryDetail() {
               <View key={contribution.id} style={[styles.contributionCard, styles.pendingCard]}>
                 <View style={styles.contributionHeader}>
                   <View style={styles.authorRow}>
-                    <View style={[styles.authorAvatar, styles.authorAvatarPending]}>
-                      <Text style={styles.authorInitial}>
-                        {(contribution.author?.username || 'A').charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
+                    {contribution.author?.avatar_url ? (
+                      <Image source={{ uri: contribution.author.avatar_url }} style={styles.authorAvatarImage} />
+                    ) : (
+                      <View style={[styles.authorAvatar, styles.authorAvatarPending]}>
+                        <Text style={styles.authorInitial}>
+                          {(contribution.author?.username || 'A').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                     <Text style={styles.contributionAuthor}>
                       {contribution.author?.username || 'Anonyme'}
                     </Text>
@@ -531,6 +539,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   authorAvatarPending: { backgroundColor: colors.warning },
+  authorAvatarImage: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   authorInitial: { color: '#FFF', fontSize: 11.5, fontWeight: '700' },
   contributionAuthor: { fontSize: 13.5, fontWeight: '700', color: colors.textPrimary },
   contributionTurn: { fontSize: 11.5, color: colors.textMuted },
