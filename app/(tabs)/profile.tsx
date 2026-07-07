@@ -107,9 +107,11 @@ export default function Profile() {
     ? { uri: avatarUrl }
     : { uri: `https://ui-avatars.com/api/?name=${username}&background=3B3358&color=fff&size=100` };
 
+  // menuItems avec Statistiques
   const menuItems = [
     { icon: 'person-outline' as const, label: 'Modifier le profil', href: '/profile/edit' },
     { icon: 'book-outline' as const, label: 'Mes histoires', href: '/profile/stories' },
+    { icon: 'stats-chart-outline' as const, label: 'Statistiques', href: '/stats' }, 
     { icon: 'notifications-outline' as const, label: 'Notifications', href: '/notifications' },
   ];
 
