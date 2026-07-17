@@ -37,14 +37,6 @@ export async function registerForPushNotificationsAsync() {
     token = (await Notifications.getExpoPushTokenAsync()).data;
     console.log('Expo Push Token:', token);
 
-    // Sauvegarder le token en base de données pour cet utilisateur
-    // (dans la table profiles, ou une table dédiée)
-    // Vous pouvez l'ajouter dans la table users ou créer une table push_tokens.
-    // Exemple : sauvegarder dans la table users (colonnes push_token)
-    // const { data: { user } } = await supabase.auth.getUser();
-    // if (user) {
-    //   await supabase.from('users').update({ push_token: token }).eq('id', user.id);
-    // }
   } catch (error) {
     console.error('Erreur d\'obtention du token:', error);
   }

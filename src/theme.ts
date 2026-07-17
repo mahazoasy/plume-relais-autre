@@ -1,26 +1,17 @@
-/**
- * Plume Relais — Design tokens
- * Place this file at: src/theme.ts
- * Import with: import { colors, spacing, radius, shadow, typography } from '../../src/theme';
- *
- * A warm, "literary" palette (ink + parchment + gold) instead of a generic
- * purple/gray template, so the app reads as a finished editorial product.
- */
-
 export const colors = {
   // Brand
-  primary: '#3B3358',       // deep ink-indigo — headers, primary actions
-  primaryDark: '#241F38',   // pressed / borders on primary
-  primaryLight: '#5A4F7E',  // hovered / secondary primary text
+  primary: '#3B3358',       
+  primaryDark: '#241F38',   
+  primaryLight: '#5A4F7E',  
 
-  accent: '#E2A33D',        // warm gold — CTAs, highlights
+  accent: '#E2A33D',        
   accentDark: '#C48A2A',
   accentSoft: '#FBF0DA',
 
   // Neutrals
-  background: '#FAF7F2',    // warm paper background
-  surface: '#FFFFFF',       // cards
-  surfaceAlt: '#F3EEE6',    // subtle recessed areas (search bars, pickers)
+  background: '#FAF7F2',    
+  surface: '#FFFFFF',      
+  surfaceAlt: '#F3EEE6',    
   border: '#EAE3D6',
   divider: '#F0EAE0',
 

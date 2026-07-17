@@ -37,10 +37,7 @@ export const useBadges = (userId: string) => {
 
   // Fonction pour calculer les badges à débloquer
   const checkBadgeEligibility = async (stats: { stories: number; contributions: number; votes: number }) => {
-    // Implémentation des conditions de déblocage
-    // Exemple: 5 histoires créées = badge "Auteur"
-    // 10 contributions = badge "Écrivain"
-    // etc.
+ 
   };
 
   return { badges, loading, checkBadgeEligibility };
